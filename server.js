@@ -16,25 +16,25 @@ const pool = new Pool({
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI;
-const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID;
-const PLAYER_ROLE_ID = process.env.PLAYER_ROLE_ID;
+const BOT_TOKEN = process.env.BOT_TOKEN; // ← ТОКЕН БОТА!
+const GUILD_ID = process.env.GUILD_ID;   // ← ID ТВОЕГО СЕРВЕРА
+const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID; // ← ID РОЛИ АДМИНА
 
-// ===== СЕССИИ (для хранения пользователя) =====
+// ===== СЕССИИ =====
 app.use(session({
     secret: process.env.SESSION_SECRET || 'secret-key',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false } // true если HTTPS
+    cookie: { secure: false }
 }));
 
 app.use(express.json());
 app.use(express.static('.'));
 
 // ============================================================
-// 1. АВТОРИЗАЦИЯ ЧЕРЕЗ DISCORD
+// 1. АВТОРИЗАЦИЯ ЧЕРЕЗ DISCORD (С БОТОМ)
 // ============================================================
 
-// Главная страница — проверяем, авторизован ли пользователь
 app.get('/api/me', (req, res) => {
     if (req.session.user) {
         res.json(req.session.user);
@@ -43,13 +43,11 @@ app.get('/api/me', (req, res) => {
     }
 });
 
-// Вход через Discord
 app.get('/auth/discord', (req, res) => {
-    const url = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify%20guilds%20guilds.members.read`;
+    const url = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify%20guilds`;
     res.redirect(url);
 });
 
-// Callback после входа
 app.get('/auth/discord/callback', async (req, res) => {
     const code = req.query.code;
     if (!code) return res.redirect('/');
@@ -78,43 +76,31 @@ app.get('/auth/discord/callback', async (req, res) => {
         });
         const userData = await userRes.json();
 
-        // 3. Получаем роли пользователя на сервере (Guild)
-        const guildsRes = await fetch('https://discord.com/api/users/@me/guilds', {
-            headers: { Authorization: `Bearer ${tokenData.access_token}` }
+        // 3. Получаем роли пользователя через БОТА (используем токен бота!)
+        const memberRes = await fetch(`https://discord.com/api/guilds/${GUILD_ID}/members/${userData.id}`, {
+            headers: { Authorization: `Bot ${BOT_TOKEN}` }
         });
-        const guilds = await guildsRes.json();
 
-        // Находим сервер Glow Vanilla (по названию или ID)
-        const guild = guilds.find(g => g.name === 'Glow Vanilla' || g.id === process.env.GUILD_ID);
-        if (!guild) {
-            return res.redirect('/');
+        let isAdmin = false;
+        if (memberRes.ok) {
+            const memberData = await memberRes.json();
+            const userRoles = memberData.roles || [];
+            isAdmin = userRoles.includes(ADMIN_ROLE_ID);
+        } else {
+            // Если бот не может получить роли — проверяем по ADMIN_ID (запасной вариант)
+            const ADMIN_ID = process.env.ADMIN_ID;
+            isAdmin = userData.id === ADMIN_ID;
         }
 
-        // 4. Получаем роли пользователя на сервере
-        const memberRes = await fetch(`https://discord.com/api/guilds/${guild.id}/members/${userData.id}`, {
-            headers: { Authorization: `Bearer ${tokenData.access_token}` }
-        });
-        const memberData = await memberRes.json();
-        const userRoles = memberData.roles || [];
-
-        // 5. Проверяем, есть ли роль администратора
-        const isAdmin = userRoles.includes(ADMIN_ROLE_ID);
-        const isPlayer = userRoles.includes(PLAYER_ROLE_ID) || userRoles.length > 0;
-
-        if (!isPlayer) {
-            return res.send('⛔ У вас нет роли игрока на сервере Glow Vanilla');
-        }
-
-        // 6. Сохраняем пользователя в сессию
+        // 4. Сохраняем в сессию
         req.session.user = {
             id: userData.id,
             username: userData.username,
             avatar: userData.avatar,
-            isAdmin: isAdmin,
-            roles: userRoles
+            isAdmin: isAdmin
         };
 
-        // 7. Сохраняем пользователя в БД (если ещё нет)
+        // 5. Сохраняем в БД
         await pool.query(
             'INSERT INTO users (discord_id, username, avatar) VALUES ($1, $2, $3) ON CONFLICT (discord_id) DO UPDATE SET username = $2, avatar = $3',
             [userData.id, userData.username, userData.avatar]
@@ -127,7 +113,6 @@ app.get('/auth/discord/callback', async (req, res) => {
     }
 });
 
-// Выход
 app.get('/auth/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/');
@@ -137,7 +122,6 @@ app.get('/auth/logout', (req, res) => {
 // 2. API ДЛЯ ФОРУМА
 // ============================================================
 
-// Проверка прав (middleware)
 function isAuth(req, res, next) {
     if (req.session.user) return next();
     res.status(401).json({ error: 'Требуется авторизация' });
@@ -230,5 +214,6 @@ app.get('/api/online', async (req, res) => {
 // ============================================================
 app.listen(PORT, () => {
     console.log(`🚀 Glow Vanilla запущен на порту ${PORT}`);
-    console.log(`👑 Админ роль ID: ${ADMIN_ROLE_ID}`);
+    console.log(`🤖 Бот токен: ${BOT_TOKEN ? '✅ Установлен' : '❌ НЕ УСТАНОВЛЕН'}`);
+    console.log(`👑 Роль админа ID: ${ADMIN_ROLE_ID}`);
 });

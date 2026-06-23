@@ -658,7 +658,9 @@
                 <a href="index.html#about" class="nav__link">О нас</a>
                 <a href="forum.html" class="nav__link active">Форум</a>
             </nav>
-            <a href="profile.html" class="profile-icon" title="Профиль">P</a>
+            <a href="profile.html" class="profile-icon" title="Профиль">
+                <img src="assets/images/default-avatar.png" alt="Профиль" id="headerAvatar" />
+            </a>
         </div>
     </header>
 
@@ -830,16 +832,13 @@
                     friends = [];
                 }
 
-                // Формируем список чатов
                 chats = [];
                 if (currentUser) {
-                    // Городские чаты (где состоит)
                     cities.forEach(c => {
                         if (c.members && c.members.includes(currentUser.id)) {
                             chats.push({ id: `city_${c.id}`, name: c.name, type: 'city' });
                         }
                     });
-                    // Личные чаты (с друзьями)
                     friends.forEach(f => {
                         chats.push({ id: `private_${f.friend_id}`, name: f.username, type: 'private' });
                     });
@@ -1134,7 +1133,6 @@
                 return;
             }
 
-            // Получаем имена заявителей
             const names = await Promise.all(city.requests.map(async (id) => {
                 try {
                     const res = await fetch(`/api/users/${id}`);
@@ -1185,7 +1183,7 @@
         }
 
         // ============================================================
-        // ЧАТЫ (ФИКС: openCityChat принимает cityId)
+        // ЧАТЫ
         // ============================================================
         async function loadMessages(chatId) {
             try {
@@ -1288,9 +1286,8 @@
             }
         }
 
-        // ФИКС: openCityChat принимает cityId как строку
         function openCityChat(cityId) {
-            const city = cities.find(c => c.id == cityId); // используем == для сравнения
+            const city = cities.find(c => c.id == cityId);
             if (!city) {
                 alert('❌ Город не найден');
                 return;
@@ -1449,6 +1446,29 @@
         }
 
         init();
+    </script>
+
+    <script>
+        // Подтягиваем аватар из Discord в хедер
+        async function updateHeaderAvatar() {
+            try {
+                const res = await fetch('/api/me');
+                if (res.ok) {
+                    const user = await res.json();
+                    const avatarUrl = user.avatar
+                        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+                        : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.id) % 5}.png`;
+                    const headerImg = document.getElementById('headerAvatar');
+                    if (headerImg) {
+                        headerImg.src = avatarUrl;
+                    }
+                }
+            } catch (e) {
+                console.log('Не удалось загрузить аватар');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', updateHeaderAvatar);
     </script>
 
 </body>

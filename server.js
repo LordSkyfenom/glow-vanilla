@@ -406,7 +406,6 @@ app.post('/api/messages', isAuth, async (req, res) => {
     }
 
     try {
-        // Проверяем доступ к чату
         if (type === 'city') {
             const cityId = parseInt(chatId.replace('city_', ''));
             const city = await pool.query(

@@ -6,6 +6,139 @@
     <title>Профиль — Glow Vanilla</title>
     <link rel="stylesheet" href="style.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+    <style>
+        .profile-section {
+            padding: 40px 0;
+            min-height: 70vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .profile-card {
+            background: var(--bg-card);
+            padding: 40px;
+            border-radius: 24px;
+            max-width: 600px;
+            width: 100%;
+            border: 1px solid rgba(255,255,255,0.05);
+            text-align: center;
+        }
+        .profile-card__avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid var(--purple);
+            margin-bottom: 16px;
+        }
+        .profile-card__name {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .profile-card__id {
+            color: var(--gray);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .profile-card__role {
+            display: inline-block;
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+        .profile-card__role.admin {
+            background: var(--green);
+            color: var(--bg);
+        }
+        .profile-card__role.user {
+            background: var(--purple);
+            color: white;
+        }
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .profile-stats__item {
+            background: var(--bg);
+            padding: 16px;
+            border-radius: 12px;
+        }
+        .profile-stats__number {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--green);
+        }
+        .profile-stats__label {
+            font-size: 13px;
+            color: var(--gray);
+        }
+        .bank-card {
+            background: linear-gradient(135deg, #1a1a3e, #0B0B1A);
+            padding: 24px;
+            border-radius: 16px;
+            text-align: left;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .bank-card__top {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: var(--gray);
+            margin-bottom: 16px;
+        }
+        .bank-card__type {
+            color: var(--gold);
+        }
+        .bank-card__number {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            font-family: monospace;
+            margin-bottom: 16px;
+        }
+        .bank-card__bottom {
+            display: flex;
+            justify-content: space-between;
+            font-size: 16px;
+        }
+        .bank-card__balance {
+            font-weight: 700;
+            color: var(--gold);
+        }
+        .profile-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn-logout {
+            background: #E94560;
+            color: white;
+        }
+        .btn-logout:hover {
+            background: #c73b52;
+        }
+        .btn-discord {
+            background: #5865F2;
+            color: white;
+        }
+        .btn-discord:hover {
+            background: #4752c4;
+        }
+        @media (max-width: 600px) {
+            .profile-stats {
+                grid-template-columns: 1fr;
+            }
+            .profile-card {
+                padding: 24px;
+            }
+        }
+    </style>
 </head>
 <body>
 
@@ -20,34 +153,19 @@
                 <a href="forum.html" class="nav__link">Форум</a>
             </nav>
             <a href="profile.html" class="profile-icon active-profile" title="Профиль">
-                <img src="assets/images/default-avatar.png" alt="Профиль" />
+                <img id="headerAvatar" src="assets/images/default-avatar.png" alt="Профиль" />
             </a>
         </div>
     </header>
 
     <!-- ===== ПРОФИЛЬ ===== -->
-    <section class="section profile-section">
-        <div class="container">
-            <div class="profile-card">
-                <img src="assets/images/default-avatar.png" alt="Аватар" class="profile-card__avatar" />
-                <h2 class="profile-card__name">Player_Glow</h2>
-                <p class="profile-card__role">Спонсор</p>
-                <div class="profile-card__stats">
-                    <div><span>Убийств:</span> 142</div>
-                    <div><span>Смертей:</span> 87</div>
-                    <div><span>Время:</span> 124 ч</div>
-                </div>
-                <!-- Банковская карта -->
-                <div class="bank-card">
-                    <div class="bank-card__top">
-                        <span class="bank-card__label">Банковская карта</span>
-                        <span class="bank-card__type">💎 АР</span>
-                    </div>
-                    <div class="bank-card__number">1234 5678 9012 3456</div>
-                    <div class="bank-card__bottom">
-                        <span class="bank-card__name">Основной счёт</span>
-                        <span class="bank-card__balance">1 250 АР</span>
-                    </div>
+    <section class="profile-section">
+        <div class="container" style="max-width: 600px; margin: 0 auto; padding: 0 20px;">
+            <div id="profileContent">
+                <!-- Загрузка -->
+                <div style="text-align:center; padding:40px; color:var(--gray);">
+                    <div style="font-size:40px; margin-bottom:12px;">⏳</div>
+                    Загрузка профиля...
                 </div>
             </div>
         </div>
@@ -63,6 +181,105 @@
             <p class="footer__copy">© 2026 Glow Vanilla</p>
         </div>
     </footer>
+
+    <script>
+        // ============================================================
+        // ЗАГРУЗКА ПРОФИЛЯ
+        // ============================================================
+        async function loadProfile() {
+            const container = document.getElementById('profileContent');
+
+            try {
+                // 1. Получаем пользователя
+                const meRes = await fetch('/api/me');
+                if (!meRes.ok) {
+                    container.innerHTML = `
+                        <div class="profile-card" style="text-align:center; padding:40px;">
+                            <div style="font-size:48px; margin-bottom:16px;">🔐</div>
+                            <h3 style="margin-bottom:12px;">Вы не авторизованы</h3>
+                            <p style="color:var(--gray); margin-bottom:24px;">Войдите через Discord, чтобы увидеть профиль</p>
+                            <a href="/auth/discord" class="btn btn-discord">Войти через Discord</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const user = await meRes.json();
+
+                // 2. Получаем статистику
+                const statsRes = await fetch(`/api/user/stats/${user.id}`);
+                const stats = statsRes.ok ? await statsRes.json() : { posts: 0, cities: 0, friends: 0 };
+
+                // 3. Обновляем аватар в хедере
+                const avatarUrl = user.avatar
+                    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+                    : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.id) % 5}.png`;
+                document.getElementById('headerAvatar').src = avatarUrl;
+
+                // 4. Рендерим профиль
+                const isAdmin = user.isAdmin || false;
+                const roleClass = isAdmin ? 'admin' : 'user';
+                const roleText = isAdmin ? '👑 Администратор' : '🎮 Игрок';
+
+                container.innerHTML = `
+                    <div class="profile-card">
+                        <img class="profile-card__avatar" src="${avatarUrl}" alt="Аватар" />
+                        <h2 class="profile-card__name">${user.username}</h2>
+                        <div class="profile-card__id">🆔 ${user.id}</div>
+                        <div class="profile-card__role ${roleClass}">${roleText}</div>
+
+                        <div class="profile-stats">
+                            <div class="profile-stats__item">
+                                <div class="profile-stats__number">${stats.posts || 0}</div>
+                                <div class="profile-stats__label">📝 Постов</div>
+                            </div>
+                            <div class="profile-stats__item">
+                                <div class="profile-stats__number">${stats.cities || 0}</div>
+                                <div class="profile-stats__label">🏙️ Городов</div>
+                            </div>
+                            <div class="profile-stats__item">
+                                <div class="profile-stats__number">${stats.friends || 0}</div>
+                                <div class="profile-stats__label">👥 Друзей</div>
+                            </div>
+                        </div>
+
+                        <!-- Банковская карта -->
+                        <div class="bank-card">
+                            <div class="bank-card__top">
+                                <span class="bank-card__label">💳 Банковская карта</span>
+                                <span class="bank-card__type">💎 АР</span>
+                            </div>
+                            <div class="bank-card__number">•••• •••• •••• ${user.id.slice(-4)}</div>
+                            <div class="bank-card__bottom">
+                                <span class="bank-card__name">${user.username}</span>
+                                <span class="bank-card__balance">${stats.balance || 0} АР</span>
+                            </div>
+                        </div>
+
+                        <div class="profile-actions">
+                            <a href="/auth/logout" class="btn btn-logout">🚪 Выйти</a>
+                            <a href="/forum.html" class="btn btn-primary">💬 Перейти в форум</a>
+                        </div>
+                    </div>
+                `;
+
+            } catch (e) {
+                console.error('Ошибка загрузки профиля:', e);
+                container.innerHTML = `
+                    <div class="profile-card" style="text-align:center; padding:40px;">
+                        <div style="font-size:48px; margin-bottom:16px;">❌</div>
+                        <h3>Ошибка загрузки профиля</h3>
+                        <p style="color:var(--gray);">Попробуйте обновить страницу</p>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================================
+        // ЗАПУСК
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', loadProfile);
+    </script>
 
 </body>
 </html>

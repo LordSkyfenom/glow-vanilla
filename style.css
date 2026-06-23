@@ -1,4 +1,6 @@
-/* ===== БАЗА ===== */
+/* ============================================
+   БАЗОВЫЕ НАСТРОЙКИ И ПЕРЕМЕННЫЕ
+   ============================================ */
 * {
     margin: 0;
     padding: 0;
@@ -6,13 +8,13 @@
 }
 
 :root {
-    --bg: #0B0B1A;
-    --bg-card: #151530;
-    --green: #00FF88;
-    --purple: #8B5CF6;
-    --white: #FFFFFF;
-    --gray: #A0A0C0;
-    --gold: #FFD700;
+    --bg: #0B0B1A;           /* Основной фон (почти чёрный) */
+    --bg-card: #151530;      /* Фон карточек (тёмно-синий) */
+    --green: #00FF88;        /* Неоново-зелёный акцент */
+    --purple: #8B5CF6;       /* Фиолетовый акцент */
+    --white: #FFFFFF;        /* Белый текст */
+    --gray: #A0A0C0;         /* Серый текст */
+    --gold: #FFD700;         /* Золотой (для цен) */
 }
 
 body {
@@ -28,7 +30,9 @@ body {
     padding: 0 20px;
 }
 
-/* ===== ХЕДЕР ===== */
+/* ============================================
+   ХЕДЕР (ШАПКА)
+   ============================================ */
 .header {
     height: 80px;
     background: rgba(11, 11, 26, 0.9);
@@ -79,6 +83,13 @@ body {
     overflow: hidden;
     border: 2px solid var(--purple);
     transition: 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--purple);
+    color: white;
+    font-weight: 700;
+    text-decoration: none;
 }
 
 .profile-icon img {
@@ -96,7 +107,9 @@ body {
     border-color: var(--green);
 }
 
-/* ===== БАННЕР ===== */
+/* ============================================
+   БАННЕР (HERO)
+   ============================================ */
 .hero {
     height: 650px;
     background-size: cover;
@@ -164,7 +177,9 @@ body {
     justify-content: center;
 }
 
-/* ===== КНОПКИ ===== */
+/* ============================================
+   КНОПКИ
+   ============================================ */
 .btn {
     display: inline-block;
     padding: 16px 40px;
@@ -174,6 +189,7 @@ body {
     text-decoration: none;
     transition: 0.3s;
     cursor: pointer;
+    border: none;
 }
 
 .btn-primary {
@@ -198,7 +214,9 @@ body {
     box-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
 }
 
-/* ===== СЕКЦИИ ===== */
+/* ============================================
+   СЕКЦИИ
+   ============================================ */
 .section {
     padding: 80px 0;
 }
@@ -222,7 +240,9 @@ body {
     margin: 0 auto 48px;
 }
 
-/* ===== СТАТИСТИКА ===== */
+/* ============================================
+   СТАТИСТИКА (О КОМАНДЕ)
+   ============================================ */
 .stats {
     display: flex;
     justify-content: center;
@@ -245,7 +265,9 @@ body {
     color: var(--gray);
 }
 
-/* ===== КАРТОЧКИ ДОНАТА ===== */
+/* ============================================
+   КАРТОЧКИ ДОНАТА
+   ============================================ */
 .cards {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -296,7 +318,9 @@ body {
     width: 100%;
 }
 
-/* ===== ФИШКИ "О НАС" ===== */
+/* ============================================
+   ФИШКИ "О НАС"
+   ============================================ */
 .features {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -323,7 +347,9 @@ body {
     font-size: 16px;
 }
 
-/* ===== ФУТЕР ===== */
+/* ============================================
+   ФУТЕР (ПОДВАЛ)
+   ============================================ */
 .footer {
     padding: 40px 0;
     border-top: 1px solid rgba(255,255,255,0.05);
@@ -363,7 +389,9 @@ body {
     color: var(--gray);
 }
 
-/* ===== ПРОФИЛЬ ===== */
+/* ============================================
+   ПРОФИЛЬ
+   ============================================ */
 .profile-section {
     display: flex;
     align-items: center;
@@ -412,7 +440,9 @@ body {
     color: var(--white);
 }
 
-/* ===== БАНКОВСКАЯ КАРТА ===== */
+/* ============================================
+   БАНКОВСКАЯ КАРТА
+   ============================================ */
 .bank-card {
     background: linear-gradient(135deg, #1a1a3e, #0B0B1A);
     padding: 24px;
@@ -452,9 +482,12 @@ body {
     color: var(--gold);
 }
 
-/* ===== АДАПТИВ ===== */
+/* ============================================
+   АДАПТИВ (ПЛАНШЕТЫ И ТЕЛЕФОНЫ)
+   ============================================ */
 @media (max-width: 1024px) {
-    .cards, .features {
+    .cards,
+    .features {
         grid-template-columns: repeat(2, 1fr);
     }
 }
@@ -484,7 +517,8 @@ body {
         font-size: 18px;
     }
 
-    .cards, .features {
+    .cards,
+    .features {
         grid-template-columns: 1fr;
     }
 
@@ -503,5 +537,18 @@ body {
 
     .profile-card {
         padding: 24px;
+    }
+}
+
+@media (max-width: 600px) {
+    .hero__buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .btn {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
     }
 }

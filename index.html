@@ -20,7 +20,7 @@
                 <a href="forum.html" class="nav__link">Форум</a>
             </nav>
             <a href="profile.html" class="profile-icon" title="Профиль">
-                <img src="assets/images/default-avatar.png" alt="Профиль" />
+                <img src="assets/images/default-avatar.png" alt="Профиль" id="headerAvatar" />
             </a>
         </div>
     </header>
@@ -138,5 +138,27 @@
     </footer>
 
     <script src="assets/scripts/main.js"></script>
+    <script>
+        // Подтягиваем аватар из Discord в хедер
+        async function updateHeaderAvatar() {
+            try {
+                const res = await fetch('/api/me');
+                if (res.ok) {
+                    const user = await res.json();
+                    const avatarUrl = user.avatar
+                        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+                        : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.id) % 5}.png`;
+                    const headerImg = document.getElementById('headerAvatar');
+                    if (headerImg) {
+                        headerImg.src = avatarUrl;
+                    }
+                }
+            } catch (e) {
+                console.log('Не удалось загрузить аватар');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', updateHeaderAvatar);
+    </script>
 </body>
 </html>

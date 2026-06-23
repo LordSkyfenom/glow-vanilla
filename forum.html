@@ -438,22 +438,211 @@
         .user-info__logout:hover {
             color: #E94560;
         }
-        @media (max-width: 1024px) {
-            .forum-layout { flex-direction: column; }
+        /* ===== МОБИЛЬНАЯ ОПТИМИЗАЦИЯ ===== */
+        @media (max-width: 768px) {
+            .forum-layout {
+                flex-direction: column;
+                padding: 12px 0;
+                gap: 12px;
+            }
             .forum-sidebar {
                 width: 100%;
-                max-height: 300px;
+                max-height: 200px;
                 position: static;
+                padding: 6px 0;
+                border-radius: 12px;
             }
-            .chat-window { max-height: 500px; min-height: 400px; }
+            .forum-sidebar .sidebar-item {
+                padding: 6px 12px;
+                font-size: 13px;
+                gap: 8px;
+            }
+            .forum-sidebar .sidebar-item .icon {
+                font-size: 16px;
+                width: 22px;
+            }
+            .forum-sidebar .sub-item {
+                padding: 4px 10px;
+                font-size: 12px;
+                margin: 1px 4px;
+            }
+            .forum-sidebar .sub-action {
+                padding: 3px 10px;
+                font-size: 11px;
+                margin: 2px 4px;
+            }
+            .forum-sidebar .badge {
+                font-size: 10px;
+                padding: 0 6px;
+            }
+            .forum-main {
+                padding: 0 2px;
+            }
+            .forum-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+                margin-bottom: 12px;
+            }
+            .forum-header__title {
+                font-size: 20px;
+                text-align: center;
+            }
+            .forum-header__actions {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .forum-header__actions .btn {
+                width: 100%;
+                text-align: center;
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+            .post-card {
+                padding: 14px;
+                margin-bottom: 10px;
+                border-radius: 12px;
+            }
+            .post-card__header {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            .post-card__avatar {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+            .post-card__author {
+                font-size: 13px;
+            }
+            .post-card__date {
+                font-size: 10px;
+                margin-left: 0;
+                width: 100%;
+            }
+            .post-card__title {
+                font-size: 15px;
+            }
+            .post-card__text {
+                font-size: 13px;
+            }
+            .post-card__badge {
+                font-size: 10px;
+                padding: 1px 8px;
+            }
+            .post-card__actions {
+                flex-direction: column;
+                gap: 4px;
+            }
+            .post-card__actions .btn {
+                width: 100%;
+                text-align: center;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            .chat-window {
+                min-height: 300px;
+                max-height: 55vh;
+                border-radius: 12px;
+            }
+            .chat-window__header {
+                padding: 8px 12px;
+                font-size: 14px;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            .chat-window__header .status {
+                font-size: 11px;
+            }
+            .chat-window__messages {
+                padding: 10px 12px;
+            }
+            .message {
+                max-width: 90%;
+                font-size: 13px;
+                padding: 6px 10px;
+            }
+            .message__time {
+                font-size: 9px;
+            }
+            .chat-window__input {
+                flex-direction: column;
+                padding: 8px 12px;
+                gap: 6px;
+            }
+            .chat-window__input input {
+                font-size: 13px;
+                padding: 8px 10px;
+            }
+            .chat-window__input button {
+                width: 100%;
+                padding: 8px;
+                font-size: 13px;
+            }
+            .modal {
+                padding: 16px;
+                margin: 10px;
+                max-width: 100%;
+                border-radius: 16px;
+            }
+            .modal__title {
+                font-size: 18px;
+                margin-bottom: 12px;
+            }
+            .modal__input {
+                font-size: 14px;
+                padding: 8px 10px;
+            }
+            .modal__actions {
+                flex-direction: column;
+                gap: 6px;
+            }
+            .modal__btn {
+                width: 100%;
+                text-align: center;
+                padding: 8px;
+                font-size: 14px;
+            }
+            .user-info {
+                padding: 8px 12px;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+            .user-info__avatar {
+                width: 28px;
+                height: 28px;
+            }
+            .user-info__name {
+                font-size: 12px;
+            }
+            .user-info__logout {
+                font-size: 12px;
+            }
         }
-        @media (max-width: 600px) {
-            .nav { gap: 16px; flex-wrap: wrap; justify-content: center; }
-            .forum-header { flex-direction: column; align-items: stretch; }
-            .forum-header__actions { flex-wrap: wrap; }
-            .chat-window__input { flex-direction: column; }
-            .chat-window__input button { width: 100%; }
-            .message { max-width: 90%; }
+        @media (max-width: 480px) {
+            .forum-sidebar {
+                max-height: 160px;
+            }
+            .forum-sidebar .sidebar-item {
+                padding: 4px 10px;
+                font-size: 12px;
+            }
+            .forum-header__title {
+                font-size: 18px;
+            }
+            .post-card {
+                padding: 10px;
+            }
+            .post-card__title {
+                font-size: 14px;
+            }
+            .post-card__text {
+                font-size: 12px;
+            }
+            .chat-window {
+                min-height: 250px;
+                max-height: 50vh;
+            }
         }
     </style>
 </head>
@@ -979,7 +1168,6 @@
 
         async function leaveCity(cityId) {
             if (!confirm('🚪 Покинуть город?')) return;
-            // Пока просто удаляем из members через API (нужно будет добавить эндпоинт)
             alert('⏳ Функция в разработке');
         }
 
@@ -997,7 +1185,7 @@
         }
 
         // ============================================================
-        // ЧАТЫ
+        // ЧАТЫ (ФИКС: openCityChat принимает cityId)
         // ============================================================
         async function loadMessages(chatId) {
             try {
@@ -1053,7 +1241,6 @@
                 </div>
             `;
 
-            // Загружаем сообщения
             loadMessages(chatId).then(msgs => {
                 const msgsContainer = document.getElementById('chatMessages');
                 if (msgs.length === 0) {
@@ -1070,7 +1257,6 @@
                 msgsContainer.scrollTop = msgsContainer.scrollHeight;
             });
 
-            // Обработчик Enter
             document.getElementById('chatInput')?.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') sendChatMessage();
             });
@@ -1102,9 +1288,13 @@
             }
         }
 
+        // ФИКС: openCityChat принимает cityId как строку
         function openCityChat(cityId) {
-            const city = cities.find(c => c.id === cityId);
-            if (!city) return;
+            const city = cities.find(c => c.id == cityId); // используем == для сравнения
+            if (!city) {
+                alert('❌ Город не найден');
+                return;
+            }
             if (!city.members?.includes(currentUser?.id)) {
                 alert('🔒 Вы не в городе!');
                 return;
@@ -1207,7 +1397,6 @@
                     alert('❌ ' + e.message);
                 }
             } else {
-                // Добавление друга через поиск
                 try {
                     const res = await fetch(`/api/users/search?q=${encodeURIComponent(value)}`);
                     if (!res.ok) throw new Error('Ошибка поиска');

@@ -130,12 +130,66 @@
         .btn-discord:hover {
             background: #4752c4;
         }
-        @media (max-width: 600px) {
+        /* ===== МОБИЛЬНАЯ ОПТИМИЗАЦИЯ ===== */
+        @media (max-width: 768px) {
+            .profile-card {
+                padding: 20px;
+                border-radius: 16px;
+                margin: 0 10px;
+            }
+            .profile-card__avatar {
+                width: 80px;
+                height: 80px;
+            }
+            .profile-card__name {
+                font-size: 22px;
+            }
+            .profile-card__id {
+                font-size: 12px;
+            }
             .profile-stats {
                 grid-template-columns: 1fr;
+                gap: 10px;
             }
+            .profile-stats__number {
+                font-size: 22px;
+            }
+            .profile-stats__label {
+                font-size: 12px;
+            }
+            .bank-card {
+                padding: 16px;
+            }
+            .bank-card__number {
+                font-size: 16px;
+                letter-spacing: 1px;
+            }
+            .bank-card__bottom {
+                font-size: 14px;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .profile-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .profile-actions .btn {
+                width: 100%;
+                text-align: center;
+                padding: 10px;
+                font-size: 14px;
+            }
+        }
+        @media (max-width: 480px) {
             .profile-card {
-                padding: 24px;
+                padding: 16px;
+            }
+            .profile-card__avatar {
+                width: 64px;
+                height: 64px;
+            }
+            .profile-card__name {
+                font-size: 18px;
             }
         }
     </style>
@@ -162,7 +216,6 @@
     <section class="profile-section">
         <div class="container" style="max-width: 600px; margin: 0 auto; padding: 0 20px;">
             <div id="profileContent">
-                <!-- Загрузка -->
                 <div style="text-align:center; padding:40px; color:var(--gray);">
                     <div style="font-size:40px; margin-bottom:12px;">⏳</div>
                     Загрузка профиля...
@@ -183,14 +236,10 @@
     </footer>
 
     <script>
-        // ============================================================
-        // ЗАГРУЗКА ПРОФИЛЯ
-        // ============================================================
         async function loadProfile() {
             const container = document.getElementById('profileContent');
 
             try {
-                // 1. Получаем пользователя
                 const meRes = await fetch('/api/me');
                 if (!meRes.ok) {
                     container.innerHTML = `
@@ -206,17 +255,14 @@
 
                 const user = await meRes.json();
 
-                // 2. Получаем статистику
                 const statsRes = await fetch(`/api/user/stats/${user.id}`);
-                const stats = statsRes.ok ? await statsRes.json() : { posts: 0, cities: 0, friends: 0 };
+                const stats = statsRes.ok ? await statsRes.json() : { posts: 0, cities: 0, friends: 0, balance: 0 };
 
-                // 3. Обновляем аватар в хедере
                 const avatarUrl = user.avatar
                     ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
                     : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.id) % 5}.png`;
                 document.getElementById('headerAvatar').src = avatarUrl;
 
-                // 4. Рендерим профиль
                 const isAdmin = user.isAdmin || false;
                 const roleClass = isAdmin ? 'admin' : 'user';
                 const roleText = isAdmin ? '👑 Администратор' : '🎮 Игрок';
@@ -243,7 +289,6 @@
                             </div>
                         </div>
 
-                        <!-- Банковская карта -->
                         <div class="bank-card">
                             <div class="bank-card__top">
                                 <span class="bank-card__label">💳 Банковская карта</span>
@@ -275,9 +320,6 @@
             }
         }
 
-        // ============================================================
-        // ЗАПУСК
-        // ============================================================
         document.addEventListener('DOMContentLoaded', loadProfile);
     </script>
 

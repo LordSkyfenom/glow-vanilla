@@ -1,552 +1,665 @@
-const express = require('express');
-const session = require('express-session');
-const { Pool } = require('pg');
-const fetch = require('node-fetch');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// ============================================================
-// ПОДКЛЮЧЕНИЕ К NEON
-// ============================================================
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-});
-
-// ============================================================
-// СЕКРЕТЫ
-// ============================================================
-const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
-const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI;
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const GUILD_ID = process.env.GUILD_ID;
-const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID;
-const ADMIN_ID = process.env.ADMIN_ID;
-
-// ============================================================
-// СЕССИИ
-// ============================================================
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'secret-key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false }
-}));
-
-app.use(express.json());
-app.use(express.static('.'));
-
-// ============================================================
-// 1. АВТОРИЗАЦИЯ ЧЕРЕЗ DISCORD
-// ============================================================
-
-app.get('/api/me', (req, res) => {
-    if (req.session.user) {
-        res.json(req.session.user);
-    } else {
-        res.status(401).json({ error: 'Не авторизован' });
-    }
-});
-
-app.get('/auth/discord', (req, res) => {
-    const url = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify%20guilds`;
-    res.redirect(url);
-});
-
-app.get('/auth/discord/callback', async (req, res) => {
-    const code = req.query.code;
-    if (!code) return res.redirect('/');
-
-    try {
-        const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                client_id: CLIENT_ID,
-                client_secret: CLIENT_SECRET,
-                grant_type: 'authorization_code',
-                code: code,
-                redirect_uri: REDIRECT_URI
-            })
-        });
-        const tokenData = await tokenRes.json();
-        if (!tokenData.access_token) {
-            return res.redirect('/');
-        }
-
-        const userRes = await fetch('https://discord.com/api/users/@me', {
-            headers: { Authorization: `Bearer ${tokenData.access_token}` }
-        });
-        const userData = await userRes.json();
-
-        let isAdmin = false;
-        try {
-            const memberRes = await fetch(`https://discord.com/api/guilds/${GUILD_ID}/members/${userData.id}`, {
-                headers: { Authorization: `Bot ${BOT_TOKEN}` }
-            });
-            if (memberRes.ok) {
-                const memberData = await memberRes.json();
-                const userRoles = memberData.roles || [];
-                isAdmin = userRoles.includes(ADMIN_ROLE_ID);
-            }
-        } catch (e) {
-            isAdmin = userData.id === ADMIN_ID;
-        }
-
-        req.session.user = {
-            id: userData.id,
-            username: userData.username,
-            avatar: userData.avatar,
-            isAdmin: isAdmin
-        };
-
-        await pool.query(
-            'INSERT INTO users (discord_id, username, avatar) VALUES ($1, $2, $3) ON CONFLICT (discord_id) DO UPDATE SET username = $2, avatar = $3',
-            [userData.id, userData.username, userData.avatar]
-        );
-
-        res.redirect('/forum.html');
-    } catch (err) {
-        console.error(err);
-        res.redirect('/');
-    }
-});
-
-app.get('/auth/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/');
-});
-
-// ============================================================
-// 2. MIDDLEWARE
-// ============================================================
-
-function isAuth(req, res, next) {
-    if (req.session.user) return next();
-    res.status(401).json({ error: 'Требуется авторизация' });
+/* ============================================================
+   БАЗОВЫЕ НАСТРОЙКИ И ПЕРЕМЕННЫЕ
+   ============================================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-function isAdmin(req, res, next) {
-    if (req.session.user && req.session.user.isAdmin) return next();
-    res.status(403).json({ error: 'Только администратор' });
+:root {
+    --bg: #0B0B1A;
+    --bg-card: #151530;
+    --green: #00FF88;
+    --purple: #8B5CF6;
+    --white: #FFFFFF;
+    --gray: #A0A0C0;
+    --gold: #FFD700;
 }
 
-// ============================================================
-// 3. API — ПОСТЫ И НОВОСТИ
-// ============================================================
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg);
+    color: var(--white);
+    line-height: 1.6;
+}
 
-app.get('/api/posts', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT * FROM forum_posts ORDER BY created_at DESC');
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка БД' });
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* ============================================================
+   ХЕДЕР
+   ============================================================ */
+.header {
+    height: 80px;
+    background: rgba(11, 11, 26, 0.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    position: sticky;
+    top: 0;
+    z-index: 999;
+}
+
+.header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 80px;
+    padding: 0 20px;
+}
+
+.logo {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--white);
+    text-decoration: none;
+    letter-spacing: 1px;
+}
+
+.nav {
+    display: flex;
+    gap: 40px;
+}
+
+.nav__link {
+    color: var(--gray);
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.nav__link:hover,
+.nav__link.active {
+    color: var(--green);
+}
+
+.profile-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--purple);
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card);
+    flex-shrink: 0;
+}
+
+.profile-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.profile-icon:hover {
+    border-color: var(--green);
+    transform: scale(1.05);
+}
+
+.active-profile {
+    border-color: var(--green);
+}
+
+/* ============================================================
+   БАННЕР
+   ============================================================ */
+.hero {
+    height: 650px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    display: flex;
+    align-items: center;
+    text-align: center;
+}
+
+.hero__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(11, 11, 26, 0.7);
+}
+
+.hero__content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+}
+
+.hero__title {
+    font-size: 72px;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--green), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 16px;
+}
+
+.hero__subtitle {
+    font-size: 24px;
+    color: var(--gray);
+    margin-bottom: 24px;
+}
+
+.hero__online {
+    font-size: 18px;
+    color: var(--gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 32px;
+}
+
+.hero__online-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--green);
+    display: inline-block;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.hero__buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+/* ============================================================
+   КНОПКИ
+   ============================================================ */
+.btn {
+    display: inline-block;
+    padding: 16px 40px;
+    font-size: 18px;
+    font-weight: 700;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: 0.3s;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-primary {
+    background: var(--green);
+    color: var(--bg);
+}
+
+.btn-primary:hover {
+    background: #00cc77;
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+}
+
+.btn-secondary {
+    background: var(--purple);
+    color: var(--white);
+}
+
+.btn-secondary:hover {
+    background: #7c4de0;
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+}
+
+/* ============================================================
+   СЕКЦИИ
+   ============================================================ */
+.section {
+    padding: 80px 0;
+}
+
+.section--dark {
+    background: var(--bg-card);
+}
+
+.section__title {
+    font-size: 40px;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.section__text {
+    font-size: 18px;
+    color: var(--gray);
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 48px;
+}
+
+/* ============================================================
+   СТАТИСТИКА
+   ============================================================ */
+.stats {
+    display: flex;
+    justify-content: center;
+    gap: 60px;
+}
+
+.stat__item {
+    text-align: center;
+}
+
+.stat__number {
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--green);
+    display: block;
+}
+
+.stat__label {
+    font-size: 18px;
+    color: var(--gray);
+}
+
+/* ============================================================
+   КАРТОЧКИ ДОНАТА
+   ============================================================ */
+.cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+}
+
+.card {
+    background: var(--bg);
+    padding: 40px 24px;
+    border-radius: 16px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-8px);
+    border-color: var(--purple);
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.15);
+}
+
+.card__icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.card__title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.card__desc {
+    color: var(--gray);
+    font-size: 16px;
+    margin-bottom: 16px;
+}
+
+.card__price {
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--gold);
+    display: block;
+    margin-bottom: 20px;
+}
+
+.card__btn {
+    width: 100%;
+}
+
+/* ============================================================
+   ФИШКИ "О НАС"
+   ============================================================ */
+.features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+}
+
+.feature {
+    text-align: center;
+}
+
+.feature__icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.feature__title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.feature__desc {
+    color: var(--gray);
+    font-size: 16px;
+}
+
+/* ============================================================
+   ФУТЕР
+   ============================================================ */
+.footer {
+    padding: 40px 0;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.footer__inner {
+    text-align: center;
+}
+
+.footer__ip {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--green);
+    margin-bottom: 12px;
+}
+
+.footer__socials {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.footer__social {
+    color: var(--gray);
+    text-decoration: none;
+    font-size: 16px;
+    transition: 0.3s;
+}
+
+.footer__social:hover {
+    color: var(--green);
+}
+
+.footer__copy {
+    font-size: 14px;
+    color: var(--gray);
+}
+
+/* ============================================================
+   ПРОФИЛЬ
+   ============================================================ */
+.profile-section {
+    display: flex;
+    align-items: center;
+    min-height: 70vh;
+}
+
+.profile-card {
+    background: var(--bg-card);
+    padding: 48px;
+    border-radius: 24px;
+    max-width: 500px;
+    margin: 0 auto;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.profile-card__avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid var(--purple);
+    margin-bottom: 16px;
+}
+
+.profile-card__name {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.profile-card__role {
+    color: var(--green);
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.profile-card__stats {
+    display: flex;
+    justify-content: space-around;
+    font-size: 16px;
+    color: var(--gray);
+    margin-bottom: 24px;
+}
+
+.profile-card__stats span {
+    color: var(--white);
+}
+
+.bank-card {
+    background: linear-gradient(135deg, #1a1a3e, #0B0B1A);
+    padding: 24px;
+    border-radius: 16px;
+    text-align: left;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.bank-card__top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--gray);
+    margin-bottom: 16px;
+}
+
+.bank-card__type {
+    color: var(--gold);
+}
+
+.bank-card__number {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    font-family: monospace;
+    margin-bottom: 16px;
+}
+
+.bank-card__bottom {
+    display: flex;
+    justify-content: space-between;
+    font-size: 16px;
+}
+
+.bank-card__balance {
+    font-weight: 700;
+    color: var(--gold);
+}
+
+/* ============================================================
+   МОБИЛЬНАЯ ОПТИМИЗАЦИЯ
+   ============================================================ */
+@media (max-width: 768px) {
+    .header {
+        height: auto;
+        padding: 6px 0;
     }
-});
-
-app.post('/api/posts', isAuth, async (req, res) => {
-    const { title, content, section } = req.body;
-    if (!title || !content) return res.status(400).json({ error: 'Заполните все поля' });
-
-    try {
-        const result = await pool.query(
-            'INSERT INTO forum_posts (author, title, content, section, discord_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [req.session.user.username, title, content, section || 'general', req.session.user.id]
-        );
-        res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка создания поста' });
+    .header__inner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        height: auto;
+        gap: 6px;
+        padding: 0 12px;
     }
-});
-
-app.post('/api/news', isAdmin, async (req, res) => {
-    const { title, content } = req.body;
-    if (!title || !content) return res.status(400).json({ error: 'Заполните все поля' });
-
-    try {
-        const result = await pool.query(
-            'INSERT INTO forum_posts (author, title, content, section, discord_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            ['Администрация', title, content, 'news', req.session.user.id]
-        );
-        res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка создания новости' });
+    .logo {
+        font-size: 18px;
+        font-weight: 900;
+        order: 1;
+        flex: 1;
+        text-align: left;
     }
-});
-
-app.delete('/api/news/:id', isAdmin, async (req, res) => {
-    const postId = parseInt(req.params.id);
-
-    try {
-        const post = await pool.query(
-            'SELECT * FROM forum_posts WHERE id = $1 AND section = $2',
-            [postId, 'news']
-        );
-        if (post.rows.length === 0) {
-            return res.status(404).json({ error: 'Новость не найдена' });
-        }
-
-        await pool.query('DELETE FROM forum_posts WHERE id = $1', [postId]);
-        res.json({ success: true });
-    } catch (err) {
-        console.error('Ошибка удаления новости:', err);
-        res.status(500).json({ error: 'Ошибка удаления новости' });
+    .profile-icon {
+        width: 36px;
+        height: 36px;
+        order: 2;
+        flex-shrink: 0;
+        border-width: 2px;
     }
-});
-
-// ============================================================
-// 4. API — ГОРОДА
-// ============================================================
-
-app.get('/api/cities', async (req, res) => {
-    try {
-        const result = await pool.query(`
-            SELECT c.*, u.username as owner_name 
-            FROM cities c
-            LEFT JOIN users u ON u.discord_id = c.owner
-            ORDER BY c.created_at DESC
-        `);
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка БД' });
+    .profile-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
     }
-});
-
-app.post('/api/cities', isAuth, async (req, res) => {
-    const { name } = req.body;
-    if (!name) return res.status(400).json({ error: 'Введите название' });
-
-    try {
-        const result = await pool.query(
-            'INSERT INTO cities (name, owner, members) VALUES ($1, $2, $3) RETURNING *',
-            [name, req.session.user.id, [req.session.user.id]]
-        );
-        res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка создания города' });
+    .nav {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+        order: 3;
+        padding-top: 6px;
+        border-top: 1px solid rgba(255,255,255,0.05);
     }
-});
-
-app.delete('/api/cities/:id', isAuth, async (req, res) => {
-    const cityId = parseInt(req.params.id);
-    const userId = req.session.user.id;
-
-    try {
-        const city = await pool.query('SELECT * FROM cities WHERE id = $1', [cityId]);
-        if (city.rows.length === 0) {
-            return res.status(404).json({ error: 'Город не найден' });
-        }
-        if (city.rows[0].owner !== userId) {
-            return res.status(403).json({ error: 'Только владелец может удалить город' });
-        }
-
-        await pool.query('DELETE FROM cities WHERE id = $1', [cityId]);
-        await pool.query('DELETE FROM messages WHERE chat_id = $1', [`city_${cityId}`]);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка удаления города' });
-    }
-});
-
-app.post('/api/cities/:id/request', isAuth, async (req, res) => {
-    const cityId = parseInt(req.params.id);
-    const userId = req.session.user.id;
-
-    try {
-        const city = await pool.query('SELECT * FROM cities WHERE id = $1', [cityId]);
-        if (city.rows.length === 0) return res.status(404).json({ error: 'Город не найден' });
-
-        let requests = city.rows[0].requests || [];
-        if (requests.includes(userId)) {
-            return res.status(400).json({ error: 'Заявка уже отправлена' });
-        }
-
-        requests.push(userId);
-        await pool.query('UPDATE cities SET requests = $1 WHERE id = $2', [requests, cityId]);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка отправки заявки' });
-    }
-});
-
-app.post('/api/cities/:id/accept', isAuth, async (req, res) => {
-    const cityId = parseInt(req.params.id);
-    const userId = req.session.user.id;
-    const { applicantId } = req.body;
-
-    try {
-        const city = await pool.query('SELECT * FROM cities WHERE id = $1', [cityId]);
-        if (city.rows.length === 0) return res.status(404).json({ error: 'Город не найден' });
-        if (city.rows[0].owner !== userId) {
-            return res.status(403).json({ error: 'Только владелец может принимать заявки' });
-        }
-
-        let requests = city.rows[0].requests || [];
-        if (!requests.includes(applicantId)) {
-            return res.status(400).json({ error: 'Заявка не найдена' });
-        }
-
-        requests = requests.filter(id => id !== applicantId);
-        let members = city.rows[0].members || [];
-        if (!members.includes(applicantId)) members.push(applicantId);
-
-        await pool.query('UPDATE cities SET requests = $1, members = $2 WHERE id = $3', [requests, members, cityId]);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка принятия заявки' });
-    }
-});
-
-// ============================================================
-// 5. API — ДРУЗЬЯ
-// ============================================================
-
-app.get('/api/friends', isAuth, async (req, res) => {
-    const userId = req.session.user.id;
-
-    try {
-        const result = await pool.query(
-            `SELECT f.*, u.username, u.avatar 
-             FROM friends f 
-             JOIN users u ON u.discord_id = f.friend_id 
-             WHERE f.user_id = $1`,
-            [userId]
-        );
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка получения друзей' });
-    }
-});
-
-app.post('/api/friends', isAuth, async (req, res) => {
-    const userId = req.session.user.id;
-    const { friendId } = req.body;
-
-    if (!friendId) return res.status(400).json({ error: 'Укажите ID друга' });
-    if (friendId === userId) return res.status(400).json({ error: 'Нельзя добавить себя' });
-
-    try {
-        const userCheck = await pool.query('SELECT * FROM users WHERE discord_id = $1', [friendId]);
-        if (userCheck.rows.length === 0) {
-            return res.status(404).json({ error: 'Пользователь не найден' });
-        }
-
-        const existCheck = await pool.query(
-            'SELECT * FROM friends WHERE user_id = $1 AND friend_id = $2',
-            [userId, friendId]
-        );
-        if (existCheck.rows.length > 0) {
-            return res.status(400).json({ error: 'Уже в друзьях' });
-        }
-
-        await pool.query(
-            'INSERT INTO friends (user_id, friend_id) VALUES ($1, $2)',
-            [userId, friendId]
-        );
-        await pool.query(
-            'INSERT INTO friends (user_id, friend_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-            [friendId, userId]
-        );
-
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка добавления друга' });
-    }
-});
-
-app.delete('/api/friends/:friendId', isAuth, async (req, res) => {
-    const userId = req.session.user.id;
-    const friendId = req.params.friendId;
-
-    try {
-        await pool.query(
-            'DELETE FROM friends WHERE user_id = $1 AND friend_id = $2',
-            [userId, friendId]
-        );
-        await pool.query(
-            'DELETE FROM friends WHERE user_id = $1 AND friend_id = $2',
-            [friendId, userId]
-        );
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка удаления друга' });
-    }
-});
-
-// ============================================================
-// 6. API — ЧАТЫ (СООБЩЕНИЯ)
-// ============================================================
-
-app.get('/api/messages/:chatId', isAuth, async (req, res) => {
-    const chatId = req.params.chatId;
-
-    try {
-        const result = await pool.query(
-            `SELECT m.*, u.username, u.avatar 
-             FROM messages m 
-             LEFT JOIN users u ON u.discord_id = m.sender_id 
-             WHERE m.chat_id = $1 
-             ORDER BY m.created_at ASC`,
-            [chatId]
-        );
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка получения сообщений' });
-    }
-});
-
-app.post('/api/messages', isAuth, async (req, res) => {
-    const { chatId, content, type } = req.body;
-    const userId = req.session.user.id;
-
-    if (!chatId || !content) {
-        return res.status(400).json({ error: 'Заполните все поля' });
+    .nav__link {
+        font-size: 13px;
+        padding: 4px 10px;
+        white-space: nowrap;
     }
 
-    try {
-        if (type === 'city') {
-            const cityId = parseInt(chatId.replace('city_', ''));
-            const city = await pool.query(
-                'SELECT * FROM cities WHERE id = $1 AND $2 = ANY(members)',
-                [cityId, userId]
-            );
-            if (city.rows.length === 0) {
-                return res.status(403).json({ error: 'Вы не в этом городе' });
-            }
-        } else {
-            const friendId = chatId.replace('private_', '');
-            const friendCheck = await pool.query(
-                'SELECT * FROM friends WHERE user_id = $1 AND friend_id = $2',
-                [userId, friendId]
-            );
-            if (friendCheck.rows.length === 0) {
-                return res.status(403).json({ error: 'Вы не друзья' });
-            }
-        }
-
-        const result = await pool.query(
-            `INSERT INTO messages (chat_id, sender_id, content, type) 
-             VALUES ($1, $2, $3, $4) RETURNING *`,
-            [chatId, userId, content, type || 'private']
-        );
-
-        const user = await pool.query(
-            'SELECT username, avatar FROM users WHERE discord_id = $1',
-            [userId]
-        );
-
-        res.json({
-            ...result.rows[0],
-            username: user.rows[0]?.username || 'Unknown',
-            avatar: user.rows[0]?.avatar || null
-        });
-    } catch (err) {
-        console.error('Ошибка отправки сообщения:', err);
-        res.status(500).json({ error: 'Ошибка отправки сообщения' });
+    .hero {
+        height: 400px;
+        padding: 20px;
     }
-});
-
-// ============================================================
-// 7. API — СТАТИСТИКА ПРОФИЛЯ
-// ============================================================
-
-app.get('/api/user/stats/:discordId', async (req, res) => {
-    const discordId = req.params.discordId;
-
-    try {
-        const postsRes = await pool.query(
-            'SELECT COUNT(*) FROM forum_posts WHERE discord_id = $1',
-            [discordId]
-        );
-        const posts = parseInt(postsRes.rows[0].count);
-
-        const citiesRes = await pool.query(
-            'SELECT COUNT(*) FROM cities WHERE $1 = ANY(members)',
-            [discordId]
-        );
-        const cities = parseInt(citiesRes.rows[0].count);
-
-        const friendsRes = await pool.query(
-            'SELECT COUNT(*) FROM friends WHERE user_id = $1',
-            [discordId]
-        );
-        const friends = parseInt(friendsRes.rows[0].count);
-
-        const balance = Math.floor(Math.random() * 5000) + 500;
-
-        res.json({ posts, cities, friends, balance });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Ошибка получения статистики' });
+    .hero__title {
+        font-size: 32px;
     }
-});
-
-// ============================================================
-// 8. API — ОНЛАЙН
-// ============================================================
-
-app.get('/api/online', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT online FROM server_status ORDER BY id DESC LIMIT 1');
-        res.json({ online: result.rows[0]?.online || 42 });
-    } catch (err) {
-        res.json({ online: 42 });
+    .hero__subtitle {
+        font-size: 16px;
     }
-});
-
-// ============================================================
-// 9. API — ПОИСК ПОЛЬЗОВАТЕЛЕЙ
-// ============================================================
-
-app.get('/api/users/search', isAuth, async (req, res) => {
-    const query = req.query.q;
-    if (!query || query.length < 2) {
-        return res.json([]);
+    .hero__online {
+        font-size: 14px;
+        flex-wrap: wrap;
+    }
+    .hero__buttons {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    .hero__buttons .btn {
+        width: 80%;
+        text-align: center;
+        padding: 12px 20px;
+        font-size: 16px;
     }
 
-    try {
-        const result = await pool.query(
-            `SELECT discord_id, username, avatar 
-             FROM users 
-             WHERE username ILIKE $1 
-             LIMIT 10`,
-            [`%${query}%`]
-        );
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка поиска' });
+    .section {
+        padding: 40px 0;
     }
-});
-
-// ============================================================
-// 10. API — ПОЛЬЗОВАТЕЛЬ ПО ID
-// ============================================================
-
-app.get('/api/users/:discordId', async (req, res) => {
-    const discordId = req.params.discordId;
-
-    try {
-        const result = await pool.query(
-            'SELECT discord_id, username, avatar FROM users WHERE discord_id = $1',
-            [discordId]
-        );
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Пользователь не найден' });
-        }
-        res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка получения пользователя' });
+    .section__title {
+        font-size: 26px;
     }
-});
+    .section__text {
+        font-size: 15px;
+        padding: 0 12px;
+    }
 
-// ============================================================
-// ЗАПУСК
-// ============================================================
-app.listen(PORT, () => {
-    console.log(`🚀 Glow Vanilla запущен на порту ${PORT}`);
-    console.log(`🤖 Бот токен: ${BOT_TOKEN ? '✅ Установлен' : '❌ НЕ УСТАНОВЛЕН'}`);
-    console.log(`👑 Роль админа ID: ${ADMIN_ROLE_ID}`);
-    console.log(`📊 База данных: ${process.env.DATABASE_URL ? '✅ Подключена' : '❌ НЕ ПОДКЛЮЧЕНА'}`);
-});
+    .stats {
+        flex-direction: column;
+        gap: 16px;
+    }
+    .stat__number {
+        font-size: 36px;
+    }
+
+    .cards,
+    .features {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 0 12px;
+    }
+    .card {
+        padding: 24px 16px;
+    }
+    .card__title {
+        font-size: 20px;
+    }
+    .card__price {
+        font-size: 26px;
+    }
+
+    .footer__ip {
+        font-size: 16px;
+    }
+    .footer__socials {
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .profile-card {
+        padding: 24px;
+        margin: 0 16px;
+    }
+    .profile-card__avatar {
+        width: 80px;
+        height: 80px;
+    }
+    .profile-card__name {
+        font-size: 22px;
+    }
+    .profile-card__stats {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .bank-card__number {
+        font-size: 18px;
+    }
+    .bank-card__bottom {
+        flex-direction: column;
+        gap: 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero {
+        height: 320px;
+    }
+    .hero__title {
+        font-size: 26px;
+    }
+    .hero__subtitle {
+        font-size: 14px;
+    }
+    .hero__buttons .btn {
+        width: 90%;
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+    .section__title {
+        font-size: 22px;
+    }
+    .section__text {
+        font-size: 14px;
+    }
+    .card {
+        padding: 16px 12px;
+    }
+    .card__icon {
+        font-size: 32px;
+    }
+    .card__title {
+        font-size: 18px;
+    }
+    .card__price {
+        font-size: 22px;
+    }
+    .nav__link {
+        font-size: 12px;
+        padding: 3px 8px;
+    }
+}

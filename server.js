@@ -23,7 +23,7 @@ const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI;
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const GUILD_ID = process.env.GUILD_ID;
 const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID;
-const ADMIN_ID = process.env.ADMIN_ID; // запасной вариант
+const ADMIN_ID = process.env.ADMIN_ID;
 
 // ============================================================
 // СЕССИИ
@@ -32,7 +32,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'secret-key',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false } // true если HTTPS
+    cookie: { secure: false }
 }));
 
 app.use(express.json());
@@ -60,7 +60,6 @@ app.get('/auth/discord/callback', async (req, res) => {
     if (!code) return res.redirect('/');
 
     try {
-        // 1. Обмениваем код на токен
         const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -77,13 +76,11 @@ app.get('/auth/discord/callback', async (req, res) => {
             return res.redirect('/');
         }
 
-        // 2. Получаем данные пользователя
         const userRes = await fetch('https://discord.com/api/users/@me', {
             headers: { Authorization: `Bearer ${tokenData.access_token}` }
         });
         const userData = await userRes.json();
 
-        // 3. Получаем роли пользователя через БОТА
         let isAdmin = false;
         try {
             const memberRes = await fetch(`https://discord.com/api/guilds/${GUILD_ID}/members/${userData.id}`, {
@@ -95,11 +92,9 @@ app.get('/auth/discord/callback', async (req, res) => {
                 isAdmin = userRoles.includes(ADMIN_ROLE_ID);
             }
         } catch (e) {
-            // Если бот не может получить роли — проверяем по ADMIN_ID
             isAdmin = userData.id === ADMIN_ID;
         }
 
-        // 4. Сохраняем в сессию
         req.session.user = {
             id: userData.id,
             username: userData.username,
@@ -107,7 +102,6 @@ app.get('/auth/discord/callback', async (req, res) => {
             isAdmin: isAdmin
         };
 
-        // 5. Сохраняем в БД
         await pool.query(
             'INSERT INTO users (discord_id, username, avatar) VALUES ($1, $2, $3) ON CONFLICT (discord_id) DO UPDATE SET username = $2, avatar = $3',
             [userData.id, userData.username, userData.avatar]
@@ -143,7 +137,6 @@ function isAdmin(req, res, next) {
 // 3. API — ПОСТЫ И НОВОСТИ
 // ============================================================
 
-// Получить все посты
 app.get('/api/posts', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM forum_posts ORDER BY created_at DESC');
@@ -153,7 +146,6 @@ app.get('/api/posts', async (req, res) => {
     }
 });
 
-// Создать пост (только авторизованные)
 app.post('/api/posts', isAuth, async (req, res) => {
     const { title, content, section } = req.body;
     if (!title || !content) return res.status(400).json({ error: 'Заполните все поля' });
@@ -169,7 +161,6 @@ app.post('/api/posts', isAuth, async (req, res) => {
     }
 });
 
-// Создать новость (только админ)
 app.post('/api/news', isAdmin, async (req, res) => {
     const { title, content } = req.body;
     if (!title || !content) return res.status(400).json({ error: 'Заполните все поля' });
@@ -189,7 +180,6 @@ app.post('/api/news', isAdmin, async (req, res) => {
 // 4. API — ГОРОДА
 // ============================================================
 
-// Получить все города
 app.get('/api/cities', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM cities ORDER BY created_at DESC');
@@ -199,7 +189,6 @@ app.get('/api/cities', async (req, res) => {
     }
 });
 
-// Создать город
 app.post('/api/cities', isAuth, async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Введите название' });
@@ -215,7 +204,6 @@ app.post('/api/cities', isAuth, async (req, res) => {
     }
 });
 
-// Удалить город (только владелец)
 app.delete('/api/cities/:id', isAuth, async (req, res) => {
     const cityId = parseInt(req.params.id);
     const userId = req.session.user.id;
@@ -234,7 +222,6 @@ app.delete('/api/cities/:id', isAuth, async (req, res) => {
     }
 });
 
-// Подать заявку в город
 app.post('/api/cities/:id/request', isAuth, async (req, res) => {
     const cityId = parseInt(req.params.id);
     const userId = req.session.user.id;
@@ -243,7 +230,7 @@ app.post('/api/cities/:id/request', isAuth, async (req, res) => {
         const city = await pool.query('SELECT * FROM cities WHERE id = $1', [cityId]);
         if (city.rows.length === 0) return res.status(404).json({ error: 'Город не найден' });
 
-        const requests = city.rows[0].requests || [];
+        let requests = city.rows[0].requests || [];
         if (requests.includes(userId)) {
             return res.status(400).json({ error: 'Заявка уже отправлена' });
         }
@@ -256,7 +243,6 @@ app.post('/api/cities/:id/request', isAuth, async (req, res) => {
     }
 });
 
-// Принять заявку в город (только владелец)
 app.post('/api/cities/:id/accept', isAuth, async (req, res) => {
     const cityId = parseInt(req.params.id);
     const userId = req.session.user.id;
@@ -289,7 +275,6 @@ app.post('/api/cities/:id/accept', isAuth, async (req, res) => {
 // 5. API — ДРУЗЬЯ
 // ============================================================
 
-// Получить список друзей
 app.get('/api/friends', isAuth, async (req, res) => {
     const userId = req.session.user.id;
 
@@ -307,7 +292,6 @@ app.get('/api/friends', isAuth, async (req, res) => {
     }
 });
 
-// Добавить друга
 app.post('/api/friends', isAuth, async (req, res) => {
     const userId = req.session.user.id;
     const { friendId } = req.body;
@@ -316,13 +300,11 @@ app.post('/api/friends', isAuth, async (req, res) => {
     if (friendId === userId) return res.status(400).json({ error: 'Нельзя добавить себя' });
 
     try {
-        // Проверяем, есть ли пользователь в БД
         const userCheck = await pool.query('SELECT * FROM users WHERE discord_id = $1', [friendId]);
         if (userCheck.rows.length === 0) {
             return res.status(404).json({ error: 'Пользователь не найден' });
         }
 
-        // Проверяем, не друзья ли уже
         const existCheck = await pool.query(
             'SELECT * FROM friends WHERE user_id = $1 AND friend_id = $2',
             [userId, friendId]
@@ -336,7 +318,6 @@ app.post('/api/friends', isAuth, async (req, res) => {
             [userId, friendId]
         );
 
-        // Добавляем в обратную сторону (взаимная дружба)
         await pool.query(
             'INSERT INTO friends (user_id, friend_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
             [friendId, userId]
@@ -348,7 +329,6 @@ app.post('/api/friends', isAuth, async (req, res) => {
     }
 });
 
-// Удалить друга
 app.delete('/api/friends/:friendId', isAuth, async (req, res) => {
     const userId = req.session.user.id;
     const friendId = req.params.friendId;
@@ -369,16 +349,15 @@ app.delete('/api/friends/:friendId', isAuth, async (req, res) => {
 });
 
 // ============================================================
-// 6. API — ЧАТЫ
+// 6. API — ЧАТЫ (СООБЩЕНИЯ)
 // ============================================================
 
-// Получить сообщения чата
 app.get('/api/messages/:chatId', isAuth, async (req, res) => {
     const chatId = req.params.chatId;
 
     try {
         const result = await pool.query(
-            'SELECT * FROM messages WHERE chat_id = $1 ORDER BY created_at ASC',
+            'SELECT m.*, u.username, u.avatar FROM messages m LEFT JOIN users u ON u.discord_id = m.sender_id WHERE m.chat_id = $1 ORDER BY m.created_at ASC',
             [chatId]
         );
         res.json(result.rows);
@@ -387,7 +366,6 @@ app.get('/api/messages/:chatId', isAuth, async (req, res) => {
     }
 });
 
-// Отправить сообщение
 app.post('/api/messages', isAuth, async (req, res) => {
     const { chatId, content, type } = req.body;
     const userId = req.session.user.id;
@@ -413,28 +391,24 @@ app.get('/api/user/stats/:discordId', async (req, res) => {
     const discordId = req.params.discordId;
 
     try {
-        // Количество постов
         const postsRes = await pool.query(
             'SELECT COUNT(*) FROM forum_posts WHERE discord_id = $1',
             [discordId]
         );
         const posts = parseInt(postsRes.rows[0].count);
 
-        // Количество городов (где состоит)
         const citiesRes = await pool.query(
             'SELECT COUNT(*) FROM cities WHERE $1 = ANY(members)',
             [discordId]
         );
         const cities = parseInt(citiesRes.rows[0].count);
 
-        // Количество друзей
         const friendsRes = await pool.query(
             'SELECT COUNT(*) FROM friends WHERE user_id = $1',
             [discordId]
         );
         const friends = parseInt(friendsRes.rows[0].count);
 
-        // Баланс (заглушка)
         const balance = Math.floor(Math.random() * 5000) + 500;
 
         res.json({ posts, cities, friends, balance });
@@ -458,10 +432,56 @@ app.get('/api/online', async (req, res) => {
 });
 
 // ============================================================
+// 9. API — ПОИСК ПОЛЬЗОВАТЕЛЕЙ (для добавления друзей)
+// ============================================================
+
+app.get('/api/users/search', isAuth, async (req, res) => {
+    const query = req.query.q;
+    if (!query || query.length < 2) {
+        return res.json([]);
+    }
+
+    try {
+        const result = await pool.query(
+            `SELECT discord_id, username, avatar 
+             FROM users 
+             WHERE username ILIKE $1 
+             LIMIT 10`,
+            [`%${query}%`]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Ошибка поиска' });
+    }
+});
+
+// ============================================================
+// 10. API — ИНФОРМАЦИЯ О ПОЛЬЗОВАТЕЛЕ ПО ID
+// ============================================================
+
+app.get('/api/users/:discordId', async (req, res) => {
+    const discordId = req.params.discordId;
+
+    try {
+        const result = await pool.query(
+            'SELECT discord_id, username, avatar FROM users WHERE discord_id = $1',
+            [discordId]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Пользователь не найден' });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: 'Ошибка получения пользователя' });
+    }
+});
+
+// ============================================================
 // ЗАПУСК
 // ============================================================
 app.listen(PORT, () => {
     console.log(`🚀 Glow Vanilla запущен на порту ${PORT}`);
     console.log(`🤖 Бот токен: ${BOT_TOKEN ? '✅ Установлен' : '❌ НЕ УСТАНОВЛЕН'}`);
     console.log(`👑 Роль админа ID: ${ADMIN_ROLE_ID}`);
+    console.log(`📊 База данных: ${process.env.DATABASE_URL ? '✅ Подключена' : '❌ НЕ ПОДКЛЮЧЕНА'}`);
 });

@@ -176,13 +176,38 @@ app.post('/api/news', isAdmin, async (req, res) => {
     }
 });
 
+app.delete('/api/news/:id', isAdmin, async (req, res) => {
+    const postId = parseInt(req.params.id);
+
+    try {
+        const post = await pool.query(
+            'SELECT * FROM forum_posts WHERE id = $1 AND section = $2',
+            [postId, 'news']
+        );
+        if (post.rows.length === 0) {
+            return res.status(404).json({ error: 'Новость не найдена' });
+        }
+
+        await pool.query('DELETE FROM forum_posts WHERE id = $1', [postId]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Ошибка удаления новости:', err);
+        res.status(500).json({ error: 'Ошибка удаления новости' });
+    }
+});
+
 // ============================================================
 // 4. API — ГОРОДА
 // ============================================================
 
 app.get('/api/cities', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM cities ORDER BY created_at DESC');
+        const result = await pool.query(`
+            SELECT c.*, u.username as owner_name 
+            FROM cities c
+            LEFT JOIN users u ON u.discord_id = c.owner
+            ORDER BY c.created_at DESC
+        `);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: 'Ошибка БД' });
@@ -210,12 +235,15 @@ app.delete('/api/cities/:id', isAuth, async (req, res) => {
 
     try {
         const city = await pool.query('SELECT * FROM cities WHERE id = $1', [cityId]);
-        if (city.rows.length === 0) return res.status(404).json({ error: 'Город не найден' });
+        if (city.rows.length === 0) {
+            return res.status(404).json({ error: 'Город не найден' });
+        }
         if (city.rows[0].owner !== userId) {
             return res.status(403).json({ error: 'Только владелец может удалить город' });
         }
 
         await pool.query('DELETE FROM cities WHERE id = $1', [cityId]);
+        await pool.query('DELETE FROM messages WHERE chat_id = $1', [`city_${cityId}`]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Ошибка удаления города' });
@@ -317,7 +345,6 @@ app.post('/api/friends', isAuth, async (req, res) => {
             'INSERT INTO friends (user_id, friend_id) VALUES ($1, $2)',
             [userId, friendId]
         );
-
         await pool.query(
             'INSERT INTO friends (user_id, friend_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
             [friendId, userId]
@@ -357,7 +384,11 @@ app.get('/api/messages/:chatId', isAuth, async (req, res) => {
 
     try {
         const result = await pool.query(
-            'SELECT m.*, u.username, u.avatar FROM messages m LEFT JOIN users u ON u.discord_id = m.sender_id WHERE m.chat_id = $1 ORDER BY m.created_at ASC',
+            `SELECT m.*, u.username, u.avatar 
+             FROM messages m 
+             LEFT JOIN users u ON u.discord_id = m.sender_id 
+             WHERE m.chat_id = $1 
+             ORDER BY m.created_at ASC`,
             [chatId]
         );
         res.json(result.rows);
@@ -370,15 +401,50 @@ app.post('/api/messages', isAuth, async (req, res) => {
     const { chatId, content, type } = req.body;
     const userId = req.session.user.id;
 
-    if (!chatId || !content) return res.status(400).json({ error: 'Заполните все поля' });
+    if (!chatId || !content) {
+        return res.status(400).json({ error: 'Заполните все поля' });
+    }
 
     try {
+        // Проверяем доступ к чату
+        if (type === 'city') {
+            const cityId = parseInt(chatId.replace('city_', ''));
+            const city = await pool.query(
+                'SELECT * FROM cities WHERE id = $1 AND $2 = ANY(members)',
+                [cityId, userId]
+            );
+            if (city.rows.length === 0) {
+                return res.status(403).json({ error: 'Вы не в этом городе' });
+            }
+        } else {
+            const friendId = chatId.replace('private_', '');
+            const friendCheck = await pool.query(
+                'SELECT * FROM friends WHERE user_id = $1 AND friend_id = $2',
+                [userId, friendId]
+            );
+            if (friendCheck.rows.length === 0) {
+                return res.status(403).json({ error: 'Вы не друзья' });
+            }
+        }
+
         const result = await pool.query(
-            'INSERT INTO messages (chat_id, sender_id, content, type) VALUES ($1, $2, $3, $4) RETURNING *',
+            `INSERT INTO messages (chat_id, sender_id, content, type) 
+             VALUES ($1, $2, $3, $4) RETURNING *`,
             [chatId, userId, content, type || 'private']
         );
-        res.json(result.rows[0]);
+
+        const user = await pool.query(
+            'SELECT username, avatar FROM users WHERE discord_id = $1',
+            [userId]
+        );
+
+        res.json({
+            ...result.rows[0],
+            username: user.rows[0]?.username || 'Unknown',
+            avatar: user.rows[0]?.avatar || null
+        });
     } catch (err) {
+        console.error('Ошибка отправки сообщения:', err);
         res.status(500).json({ error: 'Ошибка отправки сообщения' });
     }
 });
@@ -432,7 +498,7 @@ app.get('/api/online', async (req, res) => {
 });
 
 // ============================================================
-// 9. API — ПОИСК ПОЛЬЗОВАТЕЛЕЙ (для добавления друзей)
+// 9. API — ПОИСК ПОЛЬЗОВАТЕЛЕЙ
 // ============================================================
 
 app.get('/api/users/search', isAuth, async (req, res) => {
@@ -456,7 +522,7 @@ app.get('/api/users/search', isAuth, async (req, res) => {
 });
 
 // ============================================================
-// 10. API — ИНФОРМАЦИЯ О ПОЛЬЗОВАТЕЛЕ ПО ID
+// 10. API — ПОЛЬЗОВАТЕЛЬ ПО ID
 // ============================================================
 
 app.get('/api/users/:discordId', async (req, res) => {

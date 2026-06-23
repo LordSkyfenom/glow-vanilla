@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
     <style>
-        /* ===== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ ФОРУМА ===== */
+        /* ===== СТИЛИ ДЛЯ ФОРУМА ===== */
         .forum-layout {
             display: flex;
             gap: 30px;
@@ -172,6 +172,13 @@
         }
         .btn-gray:hover {
             background: rgba(255,255,255,0.15);
+        }
+        .btn-discord {
+            background: #5865F2;
+            color: white;
+        }
+        .btn-discord:hover {
+            background: #4752c4;
         }
         .post-card {
             background: var(--bg-card);
@@ -406,6 +413,31 @@
         .modal__btn-secondary:hover {
             background: rgba(255,255,255,0.05);
         }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .user-info__avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+        }
+        .user-info__name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .user-info__logout {
+            margin-left: auto;
+            color: var(--gray);
+            text-decoration: none;
+            font-size: 13px;
+        }
+        .user-info__logout:hover {
+            color: var(--red);
+        }
         @media (max-width: 1024px) {
             .forum-layout { flex-direction: column; }
             .forum-sidebar {
@@ -479,6 +511,13 @@
                         <span class="badge" id="chatBadge">0</span>
                     </div>
                     <div id="chatList" class="sub-list" style="display:none;"></div>
+
+                    <!-- ИНФОРМАЦИЯ О ПОЛЬЗОВАТЕЛЕ -->
+                    <div class="user-info" id="userInfo">
+                        <img class="user-info__avatar" id="userAvatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar" />
+                        <span class="user-info__name" id="userName">Не авторизован</span>
+                        <a class="user-info__logout" id="authBtn" href="/auth/discord">Войти</a>
+                    </div>
                 </aside>
 
                 <!-- ОСНОВНАЯ ОБЛАСТЬ -->
@@ -519,55 +558,87 @@
     </footer>
 
     <script>
-        // ===== ДАННЫЕ (локальные, пока без БД) =====
-        const data = {
-            news: [
-                { author: 'Администрация', date: 'Сегодня', title: 'Обновление 2.0', text: 'Новые структуры и улучшения!' }
-            ],
-            general: [
-                { author: 'CraftMaster', date: 'Вчера', title: 'Нашёл храм!', text: 'Координаты 1200 64 -500' }
-            ],
-            cities: [
-                { 
-                    id: 'city1', 
-                    name: 'Новый Свет', 
-                    owner: 'AlexMiner',
-                    deputies: ['BuildPro'],
-                    members: ['AlexMiner', 'BuildPro'],
-                    requests: ['RedstoneKing']
-                },
-                { 
-                    id: 'city2', 
-                    name: 'Крепость', 
-                    owner: 'CraftMaster',
-                    deputies: [],
-                    members: ['CraftMaster'],
-                    requests: []
-                }
-            ],
-            friends: [
-                { id: 'friend1', name: 'AlexMiner', status: 'онлайн' },
-                { id: 'friend2', name: 'BuildPro', status: 'онлайн' },
-                { id: 'friend3', name: 'RedstoneKing', status: 'офлайн' }
-            ],
-            messages: {
-                city1: [
-                    { from: 'AlexMiner', text: 'Кто на стройке?', time: '14:00' }
-                ],
-                friend1: [
-                    { from: 'AlexMiner', text: 'Привет!', time: '12:30' },
-                    { from: 'me', text: 'Привет!', time: '12:32' }
-                ]
-            },
-            myChats: ['city1', 'friend1'],
-            myName: 'Игрок',
-            adminName: 'Игрок'
-        };
-
+        // ============================================================
+        // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+        // ============================================================
+        let currentUser = null;
         let currentSection = 'news';
         let currentChatId = null;
 
-        // ===== РЕНДЕРИНГ =====
+        // ============================================================
+        // ЗАГРУЗКА ПОЛЬЗОВАТЕЛЯ
+        // ============================================================
+        async function loadUser() {
+            try {
+                const res = await fetch('/api/me');
+                if (res.ok) {
+                    currentUser = await res.json();
+                    document.getElementById('userName').textContent = currentUser.username;
+                    document.getElementById('userAvatar').src = `https://cdn.discordapp.com/avatars/${currentUser.id}/${currentUser.avatar}.png`;
+                    document.getElementById('authBtn').textContent = 'Выйти';
+                    document.getElementById('authBtn').href = '/auth/logout';
+                } else {
+                    currentUser = null;
+                    document.getElementById('userName').textContent = 'Не авторизован';
+                    document.getElementById('userAvatar').src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+                    document.getElementById('authBtn').textContent = 'Войти';
+                    document.getElementById('authBtn').href = '/auth/discord';
+                }
+            } catch (e) {
+                currentUser = null;
+            }
+            renderAll();
+        }
+
+        // ============================================================
+        // API ЗАПРОСЫ
+        // ============================================================
+        async function apiGet(url) {
+            const res = await fetch(url);
+            return res.json();
+        }
+
+        async function apiPost(url, data) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Ошибка');
+            }
+            return res.json();
+        }
+
+        // ============================================================
+        // ДАННЫЕ
+        // ============================================================
+        let posts = { news: [], general: [] };
+        let cities = [];
+        let friends = [];
+        let chats = [];
+
+        async function loadData() {
+            try {
+                const allPosts = await apiGet('/api/posts');
+                posts.news = allPosts.filter(p => p.section === 'news');
+                posts.general = allPosts.filter(p => p.section === 'general' || p.section === 'general');
+
+                cities = await apiGet('/api/cities');
+                // Пока друзья и чаты — заглушки (позже добавим)
+                friends = [];
+                chats = [];
+
+                renderAll();
+            } catch (e) {
+                console.error('Ошибка загрузки данных:', e);
+            }
+        }
+
+        // ============================================================
+        // РЕНДЕРИНГ
+        // ============================================================
         function renderAll() {
             renderSidebar();
             renderContent(currentSection);
@@ -576,56 +647,40 @@
         function renderSidebar() {
             const cityList = document.getElementById('cityList');
             const cityBadge = document.getElementById('cityBadge');
-            cityBadge.textContent = data.cities.length;
+            cityBadge.textContent = cities.length;
             cityList.innerHTML = `
-                ${data.cities.map(c => `
+                ${cities.map(c => `
                     <div class="sub-item" onclick="openCity('${c.id}')">
                         <span class="sub-icon">🏙️</span> ${c.name}
-                        <span class="sub-badge">${c.members.length} 👥</span>
+                        <span class="sub-badge">${c.members ? c.members.length : 0} 👥</span>
                     </div>
                 `).join('')}
-                <div class="sub-action" onclick="openModal('city')">➕ Создать город</div>
+                ${currentUser ? `<div class="sub-action" onclick="openModal('city')">➕ Создать город</div>` : ''}
             `;
 
+            // Друзья (заглушка)
             const friendList = document.getElementById('friendList');
             const friendBadge = document.getElementById('friendBadge');
-            friendBadge.textContent = data.friends.length;
+            friendBadge.textContent = friends.length;
             friendList.innerHTML = `
-                ${data.friends.map(f => `
+                ${friends.map(f => `
                     <div class="sub-item" onclick="openFriendChat('${f.id}')">
-                        <span class="sub-icon">${f.status === 'онлайн' ? '🟢' : '⚫'}</span> ${f.name}
-                        <span class="sub-badge">${f.status}</span>
+                        <span class="sub-icon">🟢</span> ${f.name}
+                        <span class="sub-badge">онлайн</span>
                     </div>
                 `).join('')}
-                <div class="sub-action" onclick="openModal('friend')">➕ Добавить друга</div>
+                ${currentUser ? `<div class="sub-action" onclick="openModal('friend')">➕ Добавить друга</div>` : ''}
             `;
 
+            // Чаты (заглушка)
             const chatList = document.getElementById('chatList');
             const chatBadge = document.getElementById('chatBadge');
-            const myChats = data.myChats || [];
-            chatBadge.textContent = myChats.length;
-
-            let chatHtml = '';
-            myChats.forEach(id => {
-                const city = data.cities.find(c => c.id === id);
-                if (city) {
-                    chatHtml += `
-                        <div class="sub-item" onclick="openCityChat('${id}')">
-                            <span class="sub-icon">🏙️</span> ${city.name} (город)
-                        </div>
-                    `;
-                    return;
-                }
-                const friend = data.friends.find(f => f.id === id);
-                if (friend) {
-                    chatHtml += `
-                        <div class="sub-item" onclick="openFriendChat('${id}')">
-                            <span class="sub-icon">👤</span> ${friend.name}
-                        </div>
-                    `;
-                }
-            });
-            chatList.innerHTML = chatHtml || '<div style="padding:8px 16px;color:var(--gray);font-size:13px;">Нет активных чатов</div>';
+            chatBadge.textContent = chats.length;
+            chatList.innerHTML = chats.length ? chats.map(c => `
+                <div class="sub-item" onclick="openChat('${c.id}')">
+                    <span class="sub-icon">${c.type === 'city' ? '🏙️' : '👤'}</span> ${c.name}
+                </div>
+            `).join('') : '<div style="padding:8px 16px;color:var(--gray);font-size:13px;">Нет активных чатов</div>';
 
             document.querySelectorAll('.sidebar-item').forEach(el => {
                 el.classList.toggle('active', el.dataset.section === currentSection);
@@ -644,376 +699,183 @@
             const chatWindow = document.querySelector('.chat-window');
             if (chatWindow) chatWindow.remove();
 
+            if (!currentUser && section !== 'news') {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">🔐</div>
+                        <h3>Требуется авторизация</h3>
+                        <p style="margin-bottom:16px;">Войдите через Discord, чтобы использовать форум</p>
+                        <a href="/auth/discord" class="btn btn-discord">Войти через Discord</a>
+                    </div>
+                `;
+                actions.innerHTML = '';
+                return;
+            }
+
             switch(section) {
                 case 'news':
                     title.textContent = '📰 Новости';
-                    if (data.myName === data.adminName) {
-                        actions.innerHTML = `<button class="btn btn-green" onclick="createNews()">+ Создать новость</button>`;
-                    } else {
-                        actions.innerHTML = '';
-                    }
-                    container.innerHTML = data.news.map(p => `
+                    actions.innerHTML = currentUser && currentUser.isAdmin 
+                        ? `<button class="btn btn-green" onclick="createNews()">+ Создать новость</button>` 
+                        : '';
+                    container.innerHTML = posts.news.length ? posts.news.map(p => `
                         <div class="post-card">
                             <div class="post-card__header">
                                 <div class="post-card__avatar">${p.author.charAt(0)}</div>
                                 <span class="post-card__author">${p.author}</span>
-                                <span class="post-card__date">${p.date}</span>
+                                <span class="post-card__date">${new Date(p.created_at).toLocaleDateString()}</span>
                             </div>
                             <span class="post-card__badge news">Новость</span>
                             <div class="post-card__title">${p.title}</div>
-                            <div class="post-card__text">${p.text}</div>
+                            <div class="post-card__text">${p.content}</div>
                         </div>
-                    `).join('');
+                    `).join('') : '<div class="empty-state"><div class="icon">📰</div>Новостей пока нет</div>';
                     break;
 
                 case 'general':
                     title.textContent = '💬 Общий форум';
-                    actions.innerHTML = `<button class="btn btn-green" onclick="createGeneralPost()">+ Создать пост</button>`;
-                    container.innerHTML = data.general.map(p => `
+                    actions.innerHTML = currentUser ? `<button class="btn btn-green" onclick="createGeneralPost()">+ Создать пост</button>` : '';
+                    container.innerHTML = posts.general.length ? posts.general.map(p => `
                         <div class="post-card">
                             <div class="post-card__header">
                                 <div class="post-card__avatar">${p.author.charAt(0)}</div>
                                 <span class="post-card__author">${p.author}</span>
-                                <span class="post-card__date">${p.date}</span>
+                                <span class="post-card__date">${new Date(p.created_at).toLocaleDateString()}</span>
                             </div>
                             <span class="post-card__badge">Общее</span>
                             <div class="post-card__title">${p.title}</div>
-                            <div class="post-card__text">${p.text}</div>
+                            <div class="post-card__text">${p.content}</div>
                         </div>
-                    `).join('');
+                    `).join('') : '<div class="empty-state"><div class="icon">💬</div>Постов пока нет. Будьте первым!</div>';
                     break;
 
                 case 'cities':
                     title.textContent = '🏙️ Города';
-                    actions.innerHTML = `<button class="btn btn-purple" onclick="openModal('city')">+ Создать город</button>`;
-                    if (data.cities.length === 0) {
-                        container.innerHTML = `<div class="empty-state"><div class="icon">🏙️</div>Городов пока нет</div>`;
-                    } else {
-                        container.innerHTML = data.cities.map(c => {
-                            const isMember = c.members.includes(data.myName);
-                            const hasRequest = c.requests && c.requests.includes(data.myName);
-                            const isOwner = c.owner === data.myName;
-                            const isDeputy = c.deputies && c.deputies.includes(data.myName);
-                            const canManage = isOwner || isDeputy;
-
-                            return `
-                                <div class="post-card">
-                                    <div class="post-card__header">
-                                        <span style="font-size:24px;">🏙️</span>
-                                        <span class="post-card__author">${c.name}</span>
-                                        <span class="post-card__date">${c.members.length} участников</span>
-                                    </div>
-                                    <div style="color:var(--gray);font-size:14px;margin-bottom:8px;">
-                                        👑 Владелец: ${c.owner} ${c.deputies && c.deputies.length ? `| ⚡ Замы: ${c.deputies.join(', ')}` : ''}
-                                    </div>
-                                    <div style="color:var(--gray);font-size:14px;margin-bottom:12px;">
-                                        👥 ${c.members.join(', ') || 'нет участников'}
-                                    </div>
-                                    <div class="post-card__actions">
-                                        ${isMember ? 
-                                            `<button class="btn btn-green" onclick="openCityChat('${c.id}')">💬 Чат</button>` :
-                                            hasRequest ?
-                                                `<button class="btn btn-gray" disabled>⏳ Заявка отправлена</button>` :
-                                                `<button class="btn btn-purple" onclick="sendRequest('${c.id}')">📩 Подать заявку</button>`
-                                        }
-                                        ${canManage && c.requests && c.requests.length > 0 ? `
-                                            <button class="btn btn-green" onclick="manageRequests('${c.id}')">📩 Заявки (${c.requests.length})</button>
-                                        ` : ''}
-                                        ${isMember && !isOwner ? `
-                                            <button class="btn btn-red" onclick="leaveCity('${c.id}')">🚪 Покинуть</button>
-                                        ` : ''}
-                                        ${isOwner ? `
-                                            <button class="btn btn-red" onclick="deleteCity('${c.id}')">🗑️ Удалить город</button>
-                                        ` : ''}
-                                    </div>
+                    actions.innerHTML = currentUser ? `<button class="btn btn-purple" onclick="openModal('city')">+ Создать город</button>` : '';
+                    container.innerHTML = cities.length ? cities.map(c => {
+                        const isMember = c.members && c.members.includes(currentUser?.id);
+                        const isOwner = c.owner === currentUser?.id;
+                        return `
+                            <div class="post-card">
+                                <div class="post-card__header">
+                                    <span style="font-size:24px;">🏙️</span>
+                                    <span class="post-card__author">${c.name}</span>
+                                    <span class="post-card__date">${c.members ? c.members.length : 0} участников</span>
                                 </div>
-                            `;
-                        }).join('');
-                    }
+                                <div style="color:var(--gray);font-size:14px;margin-bottom:12px;">
+                                    👥 ${c.members ? c.members.join(', ') : 'нет участников'}
+                                </div>
+                                <div class="post-card__actions">
+                                    ${isMember ? `<button class="btn btn-green" onclick="openCityChat('${c.id}')">💬 Чат</button>` : ''}
+                                    ${isOwner ? `<button class="btn btn-red" onclick="deleteCity('${c.id}')">🗑️ Удалить город</button>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('') : '<div class="empty-state"><div class="icon">🏙️</div>Городов пока нет</div>';
                     break;
 
                 case 'friends':
                     title.textContent = '👥 Друзья';
-                    actions.innerHTML = `<button class="btn btn-purple" onclick="openModal('friend')">+ Добавить друга</button>`;
-                    container.innerHTML = data.friends.map(f => `
+                    actions.innerHTML = currentUser ? `<button class="btn btn-purple" onclick="openModal('friend')">+ Добавить друга</button>` : '';
+                    container.innerHTML = friends.length ? friends.map(f => `
                         <div class="post-card" onclick="openFriendChat('${f.id}')" style="cursor:pointer;">
                             <div class="post-card__header">
                                 <div class="post-card__avatar">${f.name.charAt(0)}</div>
                                 <span class="post-card__author">${f.name}</span>
-                                <span class="post-card__date">${f.status === 'онлайн' ? '🟢 онлайн' : '⚫ офлайн'}</span>
+                                <span class="post-card__date">🟢 онлайн</span>
                             </div>
                         </div>
-                    `).join('');
+                    `).join('') : '<div class="empty-state"><div class="icon">👥</div>У вас пока нет друзей</div>';
                     break;
 
                 case 'chats':
                     title.textContent = '💬 Чаты';
                     actions.innerHTML = '';
-                    const myChats = data.myChats || [];
-                    if (myChats.length === 0) {
-                        container.innerHTML = `<div class="empty-state"><div class="icon">💬</div>Нет активных чатов</div>`;
-                    } else {
-                        let html = '';
-                        myChats.forEach(id => {
-                            const city = data.cities.find(c => c.id === id);
-                            if (city) {
-                                html += `
-                                    <div class="post-card" onclick="openCityChat('${id}')" style="cursor:pointer;">
-                                        <div class="post-card__header">
-                                            <span style="font-size:24px;">🏙️</span>
-                                            <span class="post-card__author">${city.name}</span>
-                                            <span class="post-card__date">городской чат</span>
-                                        </div>
-                                    </div>
-                                `;
-                                return;
-                            }
-                            const friend = data.friends.find(f => f.id === id);
-                            if (friend) {
-                                html += `
-                                    <div class="post-card" onclick="openFriendChat('${id}')" style="cursor:pointer;">
-                                        <div class="post-card__header">
-                                            <div class="post-card__avatar">${friend.name.charAt(0)}</div>
-                                            <span class="post-card__author">${friend.name}</span>
-                                            <span class="post-card__date">личный чат</span>
-                                        </div>
-                                    </div>
-                                `;
-                            }
-                        });
-                        container.innerHTML = html;
-                    }
+                    container.innerHTML = chats.length ? chats.map(c => `
+                        <div class="post-card" onclick="openChat('${c.id}')" style="cursor:pointer;">
+                            <div class="post-card__header">
+                                <span style="font-size:24px;">${c.type === 'city' ? '🏙️' : '👤'}</span>
+                                <span class="post-card__author">${c.name}</span>
+                                <span class="post-card__date">${c.type === 'city' ? 'городской чат' : 'личный чат'}</span>
+                            </div>
+                        </div>
+                    `).join('') : '<div class="empty-state"><div class="icon">💬</div>Нет активных чатов</div>';
                     break;
             }
         }
 
-        // ===== СОЗДАНИЕ НОВОСТИ =====
-        function createNews() {
-            if (data.myName !== data.adminName) {
+        // ============================================================
+        // СОЗДАНИЕ НОВОСТЕЙ И ПОСТОВ
+        // ============================================================
+        async function createNews() {
+            if (!currentUser || !currentUser.isAdmin) {
                 alert('⛔ Только администратор может создавать новости!');
                 return;
             }
             const title = prompt('📰 Заголовок новости:');
             if (!title) return;
-            const text = prompt('📝 Текст новости:');
-            if (!text) return;
-            
-            data.news.unshift({ 
-                author: 'Администрация', 
-                date: 'Только что', 
-                title: title, 
-                text: text 
-            });
-            renderContent('news');
-            renderSidebar();
-            alert('✅ Новость создана!');
+            const content = prompt('📝 Текст новости:');
+            if (!content) return;
+
+            try {
+                await apiPost('/api/news', { title, content });
+                await loadData();
+                renderContent('news');
+                alert('✅ Новость создана!');
+            } catch (e) {
+                alert('❌ Ошибка: ' + e.message);
+            }
         }
 
-        // ===== УДАЛЕНИЕ ГОРОДА =====
-        function deleteCity(id) {
-            const city = data.cities.find(c => c.id === id);
-            if (!city) return;
-            if (city.owner !== data.myName) {
-                alert('👑 Только владелец может удалить город!');
+        async function createGeneralPost() {
+            if (!currentUser) {
+                alert('⛔ Требуется авторизация!');
                 return;
             }
-            if (!confirm(`🗑️ Удалить город "${city.name}"? Это действие нельзя отменить!`)) return;
-            
-            data.cities = data.cities.filter(c => c.id !== id);
-            delete data.messages[id];
-            data.myChats = data.myChats.filter(c => c !== id);
-            
-            renderAll();
-            alert(`✅ Город "${city.name}" удалён!`);
-        }
-
-        // ===== ЗАЯВКИ В ГОРОД =====
-        function sendRequest(cityId) {
-            const city = data.cities.find(c => c.id === cityId);
-            if (!city) return;
-            if (!city.requests) city.requests = [];
-            if (city.requests.includes(data.myName)) return alert('Заявка уже отправлена!');
-            city.requests.push(data.myName);
-            renderContent('cities');
-            renderSidebar();
-            alert('✅ Заявка отправлена! Ожидайте решения владельца.');
-        }
-
-        function manageRequests(cityId) {
-            const city = data.cities.find(c => c.id === cityId);
-            if (!city || !city.requests || city.requests.length === 0) return alert('Нет заявок');
-
-            const list = city.requests.map((name, i) => 
-                `${i+1}. ${name}`
-            ).join('\n');
-
-            const choice = prompt(`Заявки в город "${city.name}":\n\n${list}\n\nВведите номер для принятия или "отклонить N" для отклонения:`);
-            if (!choice) return;
-
-            if (choice.startsWith('отклонить')) {
-                const num = parseInt(choice.split(' ')[1]) - 1;
-                if (num >= 0 && num < city.requests.length) {
-                    city.requests.splice(num, 1);
-                    renderContent('cities');
-                    renderSidebar();
-                    alert('❌ Заявка отклонена');
-                }
-                return;
-            }
-
-            const num = parseInt(choice) - 1;
-            if (num >= 0 && num < city.requests.length) {
-                const name = city.requests[num];
-                city.requests.splice(num, 1);
-                if (!city.members.includes(name)) city.members.push(name);
-                if (!data.myChats.includes(cityId)) data.myChats.push(cityId);
-                renderContent('cities');
-                renderSidebar();
-                alert(`✅ ${name} принят в город!`);
-            }
-        }
-
-        // ===== ПОКИНУТЬ ГОРОД =====
-        function leaveCity(id) {
-            if (!confirm('Покинуть город?')) return;
-            const city = data.cities.find(c => c.id === id);
-            if (!city) return;
-            if (city.owner === data.myName) return alert('👑 Владелец не может покинуть город!');
-            city.members = city.members.filter(m => m !== data.myName);
-            data.myChats = data.myChats.filter(c => c !== id);
-            renderContent('cities');
-            renderSidebar();
-        }
-
-        // ===== ОТКРЫТИЕ ГОРОДА =====
-        function openCity(id) {
-            currentSection = 'cities';
-            renderAll();
-            setTimeout(() => {
-                const cards = document.querySelectorAll('.post-card');
-                const city = data.cities.find(c => c.id === id);
-                if (city) {
-                    const idx = data.cities.indexOf(city);
-                    if (cards[idx]) cards[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }, 100);
-        }
-
-        // ===== ЧАТЫ =====
-        function renderChat(chatId, name, type) {
-            currentChatId = chatId;
-            const container = document.getElementById('sectionContent');
-            const title = document.getElementById('sectionTitle');
-            const actions = document.getElementById('sectionActions');
-
-            actions.innerHTML = '';
-
-            const city = data.cities.find(c => c.id === chatId);
-            if (city && !city.members.includes(data.myName)) {
-                container.innerHTML = `<div class="empty-state"><div class="icon">🔒</div>Вы не в городе</div>`;
-                return;
-            }
-
-            const msgs = data.messages[chatId] || [];
-
-            container.innerHTML = `
-                <div class="chat-window">
-                    <div class="chat-window__header">
-                        <span>💬 ${name}</span>
-                        <span class="status">${type === 'city' ? 'городской чат' : 'личный чат'}</span>
-                        ${type === 'city' ? `<button class="btn btn-red" style="margin-left:auto;padding:4px 12px;font-size:12px;" onclick="leaveCity('${chatId}')">🚪 Покинуть</button>` : ''}
-                    </div>
-                    <div class="chat-window__messages" id="chatMessages">
-                        ${msgs.length === 0 ? '<div class="empty-state">Напишите первое сообщение!</div>' :
-                            msgs.map(m => `
-                                <div class="message ${m.from === 'me' ? 'message--self' : 'message--other'}">
-                                    ${m.from !== 'me' ? `<strong>${m.from}</strong><br/>` : ''}
-                                    ${m.text}
-                                    <span class="message__time">${m.time}</span>
-                                </div>
-                            `).join('')
-                        }
-                    </div>
-                    <div class="chat-window__input">
-                        <input id="chatInput" placeholder="Введите сообщение..." />
-                        <button onclick="sendChatMessage()">Отправить</button>
-                    </div>
-                </div>
-            `;
-
-            const msgsContainer = document.getElementById('chatMessages');
-            if (msgsContainer) msgsContainer.scrollTop = msgsContainer.scrollHeight;
-
-            document.getElementById('chatInput')?.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') sendChatMessage();
-            });
-
-            title.textContent = `💬 ${name}`;
-        }
-
-        function sendChatMessage() {
-            const input = document.getElementById('chatInput');
-            const text = input.value.trim();
-            if (!text || !currentChatId) return;
-
-            const now = new Date();
-            const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-
-            if (!data.messages[currentChatId]) data.messages[currentChatId] = [];
-            data.messages[currentChatId].push({ from: 'me', text, time });
-
-            input.value = '';
-            renderChat(currentChatId, getChatName(currentChatId), getChatType(currentChatId));
-            renderSidebar();
-        }
-
-        function getChatName(id) {
-            const city = data.cities.find(c => c.id === id);
-            if (city) return city.name;
-            const friend = data.friends.find(f => f.id === id);
-            return friend ? friend.name : 'Чат';
-        }
-
-        function getChatType(id) {
-            const city = data.cities.find(c => c.id === id);
-            return city ? 'city' : 'friend';
-        }
-
-        function openCityChat(id) {
-            const city = data.cities.find(c => c.id === id);
-            if (!city) return;
-            if (!city.members.includes(data.myName)) {
-                alert('🔒 Вы не в городе!');
-                return;
-            }
-            if (!data.myChats.includes(id)) data.myChats.push(id);
-            renderChat(id, city.name, 'city');
-            renderSidebar();
-        }
-
-        function openFriendChat(id) {
-            const friend = data.friends.find(f => f.id === id);
-            if (!friend) return;
-            if (!data.myChats.includes(id)) data.myChats.push(id);
-            renderChat(id, friend.name, 'friend');
-            renderSidebar();
-        }
-
-        // ===== СОЗДАНИЕ ПОСТОВ =====
-        function createGeneralPost() {
             const title = prompt('Заголовок:');
             if (!title) return;
-            const text = prompt('Текст:');
-            if (!text) return;
-            data.general.unshift({ author: data.myName, date: 'Только что', title, text });
-            renderContent('general');
-            renderSidebar();
+            const content = prompt('Текст:');
+            if (!content) return;
+
+            try {
+                await apiPost('/api/posts', { title, content, section: 'general' });
+                await loadData();
+                renderContent('general');
+                alert('✅ Пост создан!');
+            } catch (e) {
+                alert('❌ Ошибка: ' + e.message);
+            }
         }
 
-        // ===== МОДАЛКА =====
+        // ============================================================
+        // ГОРОДА
+        // ============================================================
+        async function createCity(name) {
+            try {
+                await apiPost('/api/cities', { name });
+                await loadData();
+                renderContent('cities');
+            } catch (e) {
+                alert('❌ Ошибка: ' + e.message);
+            }
+        }
+
+        async function deleteCity(id) {
+            if (!confirm('Удалить город?')) return;
+            // Пока удаление через API не реализовано — заглушка
+            alert('Функция удаления города в разработке');
+        }
+
+        // ============================================================
+        // МОДАЛКА
+        // ============================================================
         let modalType = '';
 
         function openModal(type) {
+            if (!currentUser) {
+                alert('⛔ Требуется авторизация!');
+                return;
+            }
             modalType = type;
             document.getElementById('modalOverlay').classList.add('open');
             document.getElementById('modalTitle').textContent = type === 'city' ? '🏙️ Создать город' : '👥 Добавить друга';
@@ -1026,34 +888,24 @@
             document.getElementById('modalOverlay').classList.remove('open');
         });
 
-        document.getElementById('modalSaveBtn').addEventListener('click', () => {
+        document.getElementById('modalSaveBtn').addEventListener('click', async () => {
             const input = document.getElementById('modalInput');
             const value = input.value.trim();
             if (!value) return alert('Заполните поле!');
 
             if (modalType === 'city') {
-                const id = 'city_' + Date.now();
-                data.cities.push({ 
-                    id, 
-                    name: value, 
-                    owner: data.myName,
-                    deputies: [],
-                    members: [data.myName],
-                    requests: []
-                });
-                data.messages[id] = [];
-                data.myChats.push(id);
+                await createCity(value);
             } else {
-                const id = 'friend_' + Date.now();
-                data.friends.push({ id, name: value, status: 'онлайн' });
-                data.messages[id] = [];
+                // Добавление друга (заглушка)
+                alert('Функция добавления друга в разработке');
             }
 
             document.getElementById('modalOverlay').classList.remove('open');
-            renderAll();
         });
 
-        // ===== ПЕРЕКЛЮЧЕНИЕ РАЗДЕЛОВ =====
+        // ============================================================
+        // ПЕРЕКЛЮЧЕНИЕ РАЗДЕЛОВ
+        // ============================================================
         document.querySelectorAll('.sidebar-item').forEach(item => {
             item.addEventListener('click', function() {
                 const section = this.dataset.section;
@@ -1071,8 +923,15 @@
             });
         });
 
-        // ===== ИНИЦИАЛИЗАЦИЯ =====
-        renderAll();
+        // ============================================================
+        // ЗАГРУЗКА
+        // ============================================================
+        async function init() {
+            await loadUser();
+            await loadData();
+        }
+
+        init();
     </script>
 
 </body>

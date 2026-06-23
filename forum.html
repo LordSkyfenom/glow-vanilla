@@ -4,108 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Форум — Glow Vanilla</title>
+    <link rel="stylesheet" href="assets/styles/style.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
     <style>
-        /* ===== ВСЕ СТИЛИ БЕЗ ИЗМЕНЕНИЙ (те же, что были) ===== */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --bg: #0B0B1A;
-            --bg-card: #151530;
-            --green: #00FF88;
-            --purple: #8B5CF6;
-            --white: #FFFFFF;
-            --gray: #A0A0C0;
-            --gold: #FFD700;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg);
-            color: var(--white);
-            line-height: 1.6;
-        }
-        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
-        .header {
-            height: 80px;
-            background: rgba(11,11,26,0.9);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            position: sticky;
-            top: 0;
-            z-index: 999;
-        }
-        .header__inner {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 80px;
-        }
-        .logo {
-            font-size: 22px;
-            font-weight: 900;
-            color: var(--white);
-            text-decoration: none;
-            letter-spacing: 1px;
-        }
-        .nav {
-            display: flex;
-            gap: 40px;
-        }
-        .nav__link {
-            color: var(--gray);
-            text-decoration: none;
-            font-size: 16px;
-            font-weight: 600;
-            transition: 0.3s;
-        }
-        .nav__link:hover,
-        .nav__link.active {
-            color: var(--green);
-        }
-        .profile-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--purple);
-            color: white;
-            font-weight: 700;
-            text-decoration: none;
-            border: 2px solid var(--purple);
-            transition: 0.3s;
-        }
-        .profile-icon:hover {
-            border-color: var(--green);
-            transform: scale(1.05);
-        }
-        .footer {
-            padding: 40px 0;
-            border-top: 1px solid rgba(255,255,255,0.05);
-        }
-        .footer__inner { text-align: center; }
-        .footer__ip {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--green);
-            margin-bottom: 12px;
-        }
-        .footer__socials {
-            display: flex;
-            gap: 24px;
-            justify-content: center;
-            margin-bottom: 12px;
-        }
-        .footer__social {
-            color: var(--gray);
-            text-decoration: none;
-            font-size: 16px;
-            transition: 0.3s;
-        }
-        .footer__social:hover { color: var(--green); }
-        .footer__copy { font-size: 14px; color: var(--gray); }
-
-        /* ===== ФОРУМ ===== */
+        /* ===== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ ФОРУМА ===== */
         .forum-layout {
             display: flex;
             gap: 30px;
@@ -270,13 +172,6 @@
         }
         .btn-gray:hover {
             background: rgba(255,255,255,0.15);
-        }
-        .btn-discord {
-            background: #5865F2;
-            color: white;
-        }
-        .btn-discord:hover {
-            background: #4752c4;
         }
         .post-card {
             background: var(--bg-card);
@@ -532,656 +427,653 @@
 </head>
 <body>
 
-<!-- ===== ХЕДЕР ===== -->
-<header class="header">
-    <div class="container header__inner">
-        <a href="index.html" class="logo">GLOW VANILLA</a>
-        <nav class="nav">
-            <a href="index.html" class="nav__link">Главная</a>
-            <a href="index.html#donate" class="nav__link">Донат</a>
-            <a href="index.html#about" class="nav__link">О нас</a>
-            <a href="forum.html" class="nav__link active">Форум</a>
-        </nav>
-        <a href="profile.html" class="profile-icon" title="Профиль">P</a>
-    </div>
-</header>
-
-<!-- ===== ФОРУМ ===== -->
-<section style="padding-top: 20px;">
-    <div class="container">
-        <div class="forum-layout">
-
-            <!-- ЛЕВАЯ ПАНЕЛЬ -->
-            <aside class="forum-sidebar" id="sidebar">
-                <div class="sidebar-item active" data-section="news">
-                    <span class="icon">📰</span> Новости
-                </div>
-
-                <div class="sidebar-item" data-section="cities">
-                    <span class="icon">🏙️</span> Города
-                    <span class="badge" id="cityBadge">0</span>
-                </div>
-                <div id="cityList" class="sub-list" style="display:none;">
-                    <div class="sub-action" onclick="openModal('city')">➕ Создать город</div>
-                </div>
-
-                <div class="sidebar-item" data-section="general">
-                    <span class="icon">💬</span> Общий форум
-                </div>
-
-                <div class="sidebar-item" data-section="friends">
-                    <span class="icon">👥</span> Друзья
-                    <span class="badge" id="friendBadge">0</span>
-                </div>
-                <div id="friendList" class="sub-list" style="display:none;">
-                    <div class="sub-action" onclick="openModal('friend')">➕ Добавить друга</div>
-                </div>
-
-                <div class="sidebar-divider"></div>
-
-                <div class="sidebar-item" data-section="chats">
-                    <span class="icon">💬</span> Чаты
-                    <span class="badge" id="chatBadge">0</span>
-                </div>
-                <div id="chatList" class="sub-list" style="display:none;"></div>
-            </aside>
-
-            <!-- ОСНОВНАЯ ОБЛАСТЬ -->
-            <main class="forum-main">
-                <div class="forum-header">
-                    <h2 class="forum-header__title" id="sectionTitle">📰 Новости</h2>
-                    <div class="forum-header__actions" id="sectionActions">
-                        <!-- СЮДА ДОБАВЛЯЕТСЯ КНОПКА "СОЗДАТЬ НОВОСТЬ" -->
-                    </div>
-                </div>
-                <div id="sectionContent"></div>
-            </main>
-
+    <!-- ===== ХЕДЕР ===== -->
+    <header class="header">
+        <div class="container header__inner">
+            <a href="index.html" class="logo">GLOW VANILLA</a>
+            <nav class="nav">
+                <a href="index.html" class="nav__link">Главная</a>
+                <a href="index.html#donate" class="nav__link">Донат</a>
+                <a href="index.html#about" class="nav__link">О нас</a>
+                <a href="forum.html" class="nav__link active">Форум</a>
+            </nav>
+            <a href="profile.html" class="profile-icon" title="Профиль">P</a>
         </div>
-    </div>
-</section>
+    </header>
 
-<!-- ===== МОДАЛКА ===== -->
-<div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-        <h3 class="modal__title" id="modalTitle">Создать</h3>
-        <label class="modal__label" id="modalLabel">Имя</label>
-        <input class="modal__input" id="modalInput" placeholder="Введите имя..." />
-        <div class="modal__actions">
-            <button class="modal__btn modal__btn-secondary" id="modalCloseBtn">Отмена</button>
-            <button class="modal__btn modal__btn-primary" id="modalSaveBtn">Сохранить</button>
-        </div>
-    </div>
-</div>
+    <!-- ===== ФОРУМ ===== -->
+    <section style="padding-top: 20px;">
+        <div class="container">
+            <div class="forum-layout">
 
-<!-- ===== ФУТЕР ===== -->
-<footer class="footer">
-    <div class="container footer__inner">
-        <p class="footer__ip">mc.glowvanilla.ru</p>
-        <div class="footer__socials">
-            <a href="https://discord.gg/glow-vanilla" target="_blank" class="footer__social">Discord</a>
-        </div>
-        <p class="footer__copy">© 2026 Glow Vanilla</p>
-    </div>
-</footer>
-
-<script>
-    // ===== ДАННЫЕ =====
-    const data = {
-        news: [
-            { author: 'Администрация', date: 'Сегодня', title: 'Обновление 2.0', text: 'Новые структуры и улучшения!' }
-        ],
-        general: [
-            { author: 'CraftMaster', date: 'Вчера', title: 'Нашёл храм!', text: 'Координаты 1200 64 -500' }
-        ],
-        cities: [
-            {
-                id: 'city1',
-                name: 'Новый Свет',
-                owner: 'AlexMiner',
-                deputies: ['BuildPro'],
-                members: ['AlexMiner', 'BuildPro'],
-                requests: ['RedstoneKing']
-            },
-            {
-                id: 'city2',
-                name: 'Крепость',
-                owner: 'CraftMaster',
-                deputies: [],
-                members: ['CraftMaster'],
-                requests: []
-            }
-        ],
-        friends: [
-            { id: 'friend1', name: 'AlexMiner', status: 'онлайн' },
-            { id: 'friend2', name: 'BuildPro', status: 'онлайн' },
-            { id: 'friend3', name: 'RedstoneKing', status: 'офлайн' }
-        ],
-        messages: {
-            city1: [
-                { from: 'AlexMiner', text: 'Кто на стройке?', time: '14:00' }
-            ],
-            friend1: [
-                { from: 'AlexMiner', text: 'Привет!', time: '12:30' },
-                { from: 'me', text: 'Привет!', time: '12:32' }
-            ]
-        },
-        myChats: ['city1', 'friend1'],
-        myName: 'Игрок', // ← СМЕНИ НА СВОЙ НИК ИЛИ DISCORD ID
-        adminName: 'Vindicator' // ← КТО МОЖЕТ ПИСАТЬ НОВОСТИ (ТЫ)
-    };
-
-    let currentSection = 'news';
-    let currentChatId = null;
-
-    // ===== РЕНДЕРИНГ =====
-    function renderAll() {
-        renderSidebar();
-        renderContent(currentSection);
-    }
-
-    function renderSidebar() {
-        const cityList = document.getElementById('cityList');
-        const cityBadge = document.getElementById('cityBadge');
-        cityBadge.textContent = data.cities.length;
-        cityList.innerHTML = `
-            ${data.cities.map(c => `
-                <div class="sub-item" onclick="openCity('${c.id}')">
-                    <span class="sub-icon">🏙️</span> ${c.name}
-                    <span class="sub-badge">${c.members.length} 👥</span>
-                </div>
-            `).join('')}
-            <div class="sub-action" onclick="openModal('city')">➕ Создать город</div>
-        `;
-
-        const friendList = document.getElementById('friendList');
-        const friendBadge = document.getElementById('friendBadge');
-        friendBadge.textContent = data.friends.length;
-        friendList.innerHTML = `
-            ${data.friends.map(f => `
-                <div class="sub-item" onclick="openFriendChat('${f.id}')">
-                    <span class="sub-icon">${f.status === 'онлайн' ? '🟢' : '⚫'}</span> ${f.name}
-                    <span class="sub-badge">${f.status}</span>
-                </div>
-            `).join('')}
-            <div class="sub-action" onclick="openModal('friend')">➕ Добавить друга</div>
-        `;
-
-        const chatList = document.getElementById('chatList');
-        const chatBadge = document.getElementById('chatBadge');
-        const myChats = data.myChats || [];
-        chatBadge.textContent = myChats.length;
-
-        let chatHtml = '';
-        myChats.forEach(id => {
-            const city = data.cities.find(c => c.id === id);
-            if (city) {
-                chatHtml += `
-                    <div class="sub-item" onclick="openCityChat('${id}')">
-                        <span class="sub-icon">🏙️</span> ${city.name} (город)
+                <!-- ЛЕВАЯ ПАНЕЛЬ -->
+                <aside class="forum-sidebar" id="sidebar">
+                    <div class="sidebar-item active" data-section="news">
+                        <span class="icon">📰</span> Новости
                     </div>
-                `;
-                return;
-            }
-            const friend = data.friends.find(f => f.id === id);
-            if (friend) {
-                chatHtml += `
-                    <div class="sub-item" onclick="openFriendChat('${id}')">
-                        <span class="sub-icon">👤</span> ${friend.name}
+
+                    <div class="sidebar-item" data-section="cities">
+                        <span class="icon">🏙️</span> Города
+                        <span class="badge" id="cityBadge">0</span>
                     </div>
-                `;
-            }
-        });
-        chatList.innerHTML = chatHtml || '<div style="padding:8px 16px;color:var(--gray);font-size:13px;">Нет активных чатов</div>';
-
-        document.querySelectorAll('.sidebar-item').forEach(el => {
-            el.classList.toggle('active', el.dataset.section === currentSection);
-        });
-
-        document.getElementById('cityList').style.display = currentSection === 'cities' ? 'block' : 'none';
-        document.getElementById('friendList').style.display = currentSection === 'friends' ? 'block' : 'none';
-        document.getElementById('chatList').style.display = currentSection === 'chats' ? 'block' : 'none';
-    }
-
-    function renderContent(section) {
-        const title = document.getElementById('sectionTitle');
-        const container = document.getElementById('sectionContent');
-        const actions = document.getElementById('sectionActions');
-
-        const chatWindow = document.querySelector('.chat-window');
-        if (chatWindow) chatWindow.remove();
-
-        switch(section) {
-            case 'news':
-                title.textContent = '📰 Новости';
-                // ★★★ КНОПКА ДЛЯ АДМИНА ★★★
-                if (data.myName === data.adminName) {
-                    actions.innerHTML = `<button class="btn btn-green" onclick="createNews()">+ Создать новость</button>`;
-                } else {
-                    actions.innerHTML = '';
-                }
-                container.innerHTML = data.news.map(p => `
-                    <div class="post-card">
-                        <div class="post-card__header">
-                            <div class="post-card__avatar">${p.author.charAt(0)}</div>
-                            <span class="post-card__author">${p.author}</span>
-                            <span class="post-card__date">${p.date}</span>
-                        </div>
-                        <span class="post-card__badge news">Новость</span>
-                        <div class="post-card__title">${p.title}</div>
-                        <div class="post-card__text">${p.text}</div>
+                    <div id="cityList" class="sub-list" style="display:none;">
+                        <div class="sub-action" onclick="openModal('city')">➕ Создать город</div>
                     </div>
-                `).join('');
-                break;
 
-            case 'general':
-                title.textContent = '💬 Общий форум';
-                actions.innerHTML = `<button class="btn btn-green" onclick="createGeneralPost()">+ Создать пост</button>`;
-                container.innerHTML = data.general.map(p => `
-                    <div class="post-card">
-                        <div class="post-card__header">
-                            <div class="post-card__avatar">${p.author.charAt(0)}</div>
-                            <span class="post-card__author">${p.author}</span>
-                            <span class="post-card__date">${p.date}</span>
-                        </div>
-                        <span class="post-card__badge">Общее</span>
-                        <div class="post-card__title">${p.title}</div>
-                        <div class="post-card__text">${p.text}</div>
+                    <div class="sidebar-item" data-section="general">
+                        <span class="icon">💬</span> Общий форум
                     </div>
-                `).join('');
-                break;
 
-            case 'cities':
-                title.textContent = '🏙️ Города';
-                actions.innerHTML = `<button class="btn btn-purple" onclick="openModal('city')">+ Создать город</button>`;
-                if (data.cities.length === 0) {
-                    container.innerHTML = `<div class="empty-state"><div class="icon">🏙️</div>Городов пока нет</div>`;
-                } else {
-                    container.innerHTML = data.cities.map(c => {
-                        const isMember = c.members.includes(data.myName);
-                        const hasRequest = c.requests && c.requests.includes(data.myName);
-                        const isOwner = c.owner === data.myName;
-                        const isDeputy = c.deputies && c.deputies.includes(data.myName);
-                        const canManage = isOwner || isDeputy;
-
-                        return `
-                            <div class="post-card">
-                                <div class="post-card__header">
-                                    <span style="font-size:24px;">🏙️</span>
-                                    <span class="post-card__author">${c.name}</span>
-                                    <span class="post-card__date">${c.members.length} участников</span>
-                                </div>
-                                <div style="color:var(--gray);font-size:14px;margin-bottom:8px;">
-                                    👑 Владелец: ${c.owner} ${c.deputies && c.deputies.length ? `| ⚡ Замы: ${c.deputies.join(', ')}` : ''}
-                                </div>
-                                <div style="color:var(--gray);font-size:14px;margin-bottom:12px;">
-                                    👥 ${c.members.join(', ') || 'нет участников'}
-                                </div>
-                                <div class="post-card__actions">
-                                    ${isMember ?
-                                        `<button class="btn btn-green" onclick="openCityChat('${c.id}')">💬 Чат</button>` :
-                                        hasRequest ?
-                                            `<button class="btn btn-gray" disabled>⏳ Заявка отправлена</button>` :
-                                            `<button class="btn btn-purple" onclick="sendRequest('${c.id}')">📩 Подать заявку</button>`
-                                    }
-                                    ${canManage && c.requests && c.requests.length > 0 ? `
-                                        <button class="btn btn-green" onclick="manageRequests('${c.id}')">📩 Заявки (${c.requests.length})</button>
-                                    ` : ''}
-                                    ${isMember && !isOwner ? `
-                                        <button class="btn btn-red" onclick="leaveCity('${c.id}')">🚪 Покинуть</button>
-                                    ` : ''}
-                                    ${isOwner ? `
-                                        <button class="btn btn-red" onclick="deleteCity('${c.id}')">🗑️ Удалить город</button>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
-                break;
-
-            case 'friends':
-                title.textContent = '👥 Друзья';
-                actions.innerHTML = `<button class="btn btn-purple" onclick="openModal('friend')">+ Добавить друга</button>`;
-                container.innerHTML = data.friends.map(f => `
-                    <div class="post-card" onclick="openFriendChat('${f.id}')" style="cursor:pointer;">
-                        <div class="post-card__header">
-                            <div class="post-card__avatar">${f.name.charAt(0)}</div>
-                            <span class="post-card__author">${f.name}</span>
-                            <span class="post-card__date">${f.status === 'онлайн' ? '🟢 онлайн' : '⚫ офлайн'}</span>
-                        </div>
+                    <div class="sidebar-item" data-section="friends">
+                        <span class="icon">👥</span> Друзья
+                        <span class="badge" id="friendBadge">0</span>
                     </div>
-                `).join('');
-                break;
+                    <div id="friendList" class="sub-list" style="display:none;">
+                        <div class="sub-action" onclick="openModal('friend')">➕ Добавить друга</div>
+                    </div>
 
-            case 'chats':
-                title.textContent = '💬 Чаты';
-                actions.innerHTML = '';
-                const myChats = data.myChats || [];
-                if (myChats.length === 0) {
-                    container.innerHTML = `<div class="empty-state"><div class="icon">💬</div>Нет активных чатов</div>`;
-                } else {
-                    let html = '';
-                    myChats.forEach(id => {
-                        const city = data.cities.find(c => c.id === id);
-                        if (city) {
-                            html += `
-                                <div class="post-card" onclick="openCityChat('${id}')" style="cursor:pointer;">
-                                    <div class="post-card__header">
-                                        <span style="font-size:24px;">🏙️</span>
-                                        <span class="post-card__author">${city.name}</span>
-                                        <span class="post-card__date">городской чат</span>
-                                    </div>
-                                </div>
-                            `;
-                            return;
-                        }
-                        const friend = data.friends.find(f => f.id === id);
-                        if (friend) {
-                            html += `
-                                <div class="post-card" onclick="openFriendChat('${id}')" style="cursor:pointer;">
-                                    <div class="post-card__header">
-                                        <div class="post-card__avatar">${friend.name.charAt(0)}</div>
-                                        <span class="post-card__author">${friend.name}</span>
-                                        <span class="post-card__date">личный чат</span>
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    });
-                    container.innerHTML = html;
-                }
-                break;
-        }
-    }
+                    <div class="sidebar-divider"></div>
 
-    // ===== СОЗДАНИЕ НОВОСТИ (ТОЛЬКО ДЛЯ АДМИНА) =====
-    function createNews() {
-        if (data.myName !== data.adminName) {
-            alert('⛔ Только администратор может создавать новости!');
-            return;
-        }
-        const title = prompt('📰 Заголовок новости:');
-        if (!title) return;
-        const text = prompt('📝 Текст новости:');
-        if (!text) return;
-       
-        data.news.unshift({
-            author: 'Администрация',
-            date: 'Только что',
-            title: title,
-            text: text
-        });
-        renderContent('news');
-        renderSidebar();
-        alert('✅ Новость создана!');
-    }
+                    <div class="sidebar-item" data-section="chats">
+                        <span class="icon">💬</span> Чаты
+                        <span class="badge" id="chatBadge">0</span>
+                    </div>
+                    <div id="chatList" class="sub-list" style="display:none;"></div>
+                </aside>
 
-    // ===== УДАЛЕНИЕ ГОРОДА (ВЛАДЕЛЕЦ) =====
-    function deleteCity(id) {
-        const city = data.cities.find(c => c.id === id);
-        if (!city) return;
-        if (city.owner !== data.myName) {
-            alert('👑 Только владелец может удалить город!');
-            return;
-        }
-        if (!confirm(`🗑️ Удалить город "${city.name}"? Это действие нельзя отменить!`)) return;
-       
-        data.cities = data.cities.filter(c => c.id !== id);
-        delete data.messages[id];
-        data.myChats = data.myChats.filter(c => c !== id);
-       
-        renderAll();
-        alert(`✅ Город "${city.name}" удалён!`);
-    }
+                <!-- ОСНОВНАЯ ОБЛАСТЬ -->
+                <main class="forum-main">
+                    <div class="forum-header">
+                        <h2 class="forum-header__title" id="sectionTitle">📰 Новости</h2>
+                        <div class="forum-header__actions" id="sectionActions"></div>
+                    </div>
+                    <div id="sectionContent"></div>
+                </main>
 
-    // ===== ЗАЯВКИ В ГОРОД =====
-    function sendRequest(cityId) {
-        const city = data.cities.find(c => c.id === cityId);
-        if (!city) return;
-        if (!city.requests) city.requests = [];
-        if (city.requests.includes(data.myName)) return alert('Заявка уже отправлена!');
-        city.requests.push(data.myName);
-        renderContent('cities');
-        renderSidebar();
-        alert('✅ Заявка отправлена! Ожидайте решения владельца.');
-    }
-
-    function manageRequests(cityId) {
-        const city = data.cities.find(c => c.id === cityId);
-        if (!city || !city.requests || city.requests.length === 0) return alert('Нет заявок');
-
-        const list = city.requests.map((name, i) =>
-            `${i+1}. ${name}`
-        ).join('\n');
-
-        const choice = prompt(`Заявки в город "${city.name}":\n\n${list}\n\nВведите номер для принятия или "отклонить N" для отклонения:`);
-        if (!choice) return;
-
-        if (choice.startsWith('отклонить')) {
-            const num = parseInt(choice.split(' ')[1]) - 1;
-            if (num >= 0 && num < city.requests.length) {
-                city.requests.splice(num, 1);
-                renderContent('cities');
-                renderSidebar();
-                alert('❌ Заявка отклонена');
-            }
-            return;
-        }
-
-        const num = parseInt(choice) - 1;
-        if (num >= 0 && num < city.requests.length) {
-            const name = city.requests[num];
-            city.requests.splice(num, 1);
-            if (!city.members.includes(name)) city.members.push(name);
-            if (!data.myChats.includes(cityId)) data.myChats.push(cityId);
-            renderContent('cities');
-            renderSidebar();
-            alert(`✅ ${name} принят в город!`);
-        }
-    }
-
-    // ===== ПОКИНУТЬ ГОРОД =====
-    function leaveCity(id) {
-        if (!confirm('Покинуть город?')) return;
-        const city = data.cities.find(c => c.id === id);
-        if (!city) return;
-        if (city.owner === data.myName) return alert('👑 Владелец не может покинуть город!');
-        city.members = city.members.filter(m => m !== data.myName);
-        data.myChats = data.myChats.filter(c => c !== id);
-        renderContent('cities');
-        renderSidebar();
-    }
-
-    // ===== ОТКРЫТИЕ ГОРОДА =====
-    function openCity(id) {
-        currentSection = 'cities';
-        renderAll();
-        setTimeout(() => {
-            const cards = document.querySelectorAll('.post-card');
-            const city = data.cities.find(c => c.id === id);
-            if (city) {
-                const idx = data.cities.indexOf(city);
-                if (cards[idx]) cards[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }, 100);
-    }
-
-    // ===== ЧАТЫ =====
-    function renderChat(chatId, name, type) {
-        currentChatId = chatId;
-        const container = document.getElementById('sectionContent');
-        const title = document.getElementById('sectionTitle');
-        const actions = document.getElementById('sectionActions');
-
-        actions.innerHTML = '';
-
-        const city = data.cities.find(c => c.id === chatId);
-        if (city && !city.members.includes(data.myName)) {
-            container.innerHTML = `<div class="empty-state"><div class="icon">🔒</div>Вы не в городе</div>`;
-            return;
-        }
-
-        const msgs = data.messages[chatId] || [];
-
-        container.innerHTML = `
-            <div class="chat-window">
-                <div class="chat-window__header">
-                    <span>💬 ${name}</span>
-                    <span class="status">${type === 'city' ? 'городской чат' : 'личный чат'}</span>
-                    ${type === 'city' ? `<button class="btn btn-red" style="margin-left:auto;padding:4px 12px;font-size:12px;" onclick="leaveCity('${chatId}')">🚪 Покинуть</button>` : ''}
-                </div>
-                <div class="chat-window__messages" id="chatMessages">
-                    ${msgs.length === 0 ? '<div class="empty-state">Напишите первое сообщение!</div>' :
-                        msgs.map(m => `
-                            <div class="message ${m.from === 'me' ? 'message--self' : 'message--other'}">
-                                ${m.from !== 'me' ? `<strong>${m.from}</strong><br/>` : ''}
-                                ${m.text}
-                                <span class="message__time">${m.time}</span>
-                            </div>
-                        `).join('')
-                    }
-                </div>
-                <div class="chat-window__input">
-                    <input id="chatInput" placeholder="Введите сообщение..." />
-                    <button onclick="sendChatMessage()">Отправить</button>
-                </div>
             </div>
-        `;
+        </div>
+    </section>
 
-        const msgsContainer = document.getElementById('chatMessages');
-        if (msgsContainer) msgsContainer.scrollTop = msgsContainer.scrollHeight;
+    <!-- ===== МОДАЛКА ===== -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3 class="modal__title" id="modalTitle">Создать</h3>
+            <label class="modal__label" id="modalLabel">Имя</label>
+            <input class="modal__input" id="modalInput" placeholder="Введите имя..." />
+            <div class="modal__actions">
+                <button class="modal__btn modal__btn-secondary" id="modalCloseBtn">Отмена</button>
+                <button class="modal__btn modal__btn-primary" id="modalSaveBtn">Сохранить</button>
+            </div>
+        </div>
+    </div>
 
-        document.getElementById('chatInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendChatMessage();
-        });
+    <!-- ===== ФУТЕР ===== -->
+    <footer class="footer">
+        <div class="container footer__inner">
+            <p class="footer__ip">mc.glowvanilla.ru</p>
+            <div class="footer__socials">
+                <a href="https://discord.gg/glow-vanilla" target="_blank" class="footer__social">Discord</a>
+            </div>
+            <p class="footer__copy">© 2026 Glow Vanilla</p>
+        </div>
+    </footer>
 
-        title.textContent = `💬 ${name}`;
-    }
+    <script>
+        // ===== ДАННЫЕ (локальные, пока без БД) =====
+        const data = {
+            news: [
+                { author: 'Администрация', date: 'Сегодня', title: 'Обновление 2.0', text: 'Новые структуры и улучшения!' }
+            ],
+            general: [
+                { author: 'CraftMaster', date: 'Вчера', title: 'Нашёл храм!', text: 'Координаты 1200 64 -500' }
+            ],
+            cities: [
+                { 
+                    id: 'city1', 
+                    name: 'Новый Свет', 
+                    owner: 'AlexMiner',
+                    deputies: ['BuildPro'],
+                    members: ['AlexMiner', 'BuildPro'],
+                    requests: ['RedstoneKing']
+                },
+                { 
+                    id: 'city2', 
+                    name: 'Крепость', 
+                    owner: 'CraftMaster',
+                    deputies: [],
+                    members: ['CraftMaster'],
+                    requests: []
+                }
+            ],
+            friends: [
+                { id: 'friend1', name: 'AlexMiner', status: 'онлайн' },
+                { id: 'friend2', name: 'BuildPro', status: 'онлайн' },
+                { id: 'friend3', name: 'RedstoneKing', status: 'офлайн' }
+            ],
+            messages: {
+                city1: [
+                    { from: 'AlexMiner', text: 'Кто на стройке?', time: '14:00' }
+                ],
+                friend1: [
+                    { from: 'AlexMiner', text: 'Привет!', time: '12:30' },
+                    { from: 'me', text: 'Привет!', time: '12:32' }
+                ]
+            },
+            myChats: ['city1', 'friend1'],
+            myName: 'Игрок',
+            adminName: 'Игрок'
+        };
 
-    function sendChatMessage() {
-        const input = document.getElementById('chatInput');
-        const text = input.value.trim();
-        if (!text || !currentChatId) return;
+        let currentSection = 'news';
+        let currentChatId = null;
 
-        const now = new Date();
-        const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-
-        if (!data.messages[currentChatId]) data.messages[currentChatId] = [];
-        data.messages[currentChatId].push({ from: 'me', text, time });
-
-        input.value = '';
-        renderChat(currentChatId, getChatName(currentChatId), getChatType(currentChatId));
-        renderSidebar();
-    }
-
-    function getChatName(id) {
-        const city = data.cities.find(c => c.id === id);
-        if (city) return city.name;
-        const friend = data.friends.find(f => f.id === id);
-        return friend ? friend.name : 'Чат';
-    }
-
-    function getChatType(id) {
-        const city = data.cities.find(c => c.id === id);
-        return city ? 'city' : 'friend';
-    }
-
-    function openCityChat(id) {
-        const city = data.cities.find(c => c.id === id);
-        if (!city) return;
-        if (!city.members.includes(data.myName)) {
-            alert('🔒 Вы не в городе!');
-            return;
-        }
-        if (!data.myChats.includes(id)) data.myChats.push(id);
-        renderChat(id, city.name, 'city');
-        renderSidebar();
-    }
-
-    function openFriendChat(id) {
-        const friend = data.friends.find(f => f.id === id);
-        if (!friend) return;
-        if (!data.myChats.includes(id)) data.myChats.push(id);
-        renderChat(id, friend.name, 'friend');
-        renderSidebar();
-    }
-
-    // ===== СОЗДАНИЕ ПОСТОВ (общий форум) =====
-    function createGeneralPost() {
-        const title = prompt('Заголовок:');
-        if (!title) return;
-        const text = prompt('Текст:');
-        if (!text) return;
-        data.general.unshift({ author: data.myName, date: 'Только что', title, text });
-        renderContent('general');
-        renderSidebar();
-    }
-
-    // ===== МОДАЛКА =====
-    let modalType = '';
-
-    function openModal(type) {
-        modalType = type;
-        document.getElementById('modalOverlay').classList.add('open');
-        document.getElementById('modalTitle').textContent = type === 'city' ? '🏙️ Создать город' : '👥 Добавить друга';
-        document.getElementById('modalLabel').textContent = type === 'city' ? 'Название города' : 'Discord ник';
-        document.getElementById('modalInput').value = '';
-        document.getElementById('modalInput').placeholder = type === 'city' ? 'Введите название...' : 'Введите ник...';
-    }
-
-    document.getElementById('modalCloseBtn').addEventListener('click', () => {
-        document.getElementById('modalOverlay').classList.remove('open');
-    });
-
-    document.getElementById('modalSaveBtn').addEventListener('click', () => {
-        const input = document.getElementById('modalInput');
-        const value = input.value.trim();
-        if (!value) return alert('Заполните поле!');
-
-        if (modalType === 'city') {
-            const id = 'city_' + Date.now();
-            data.cities.push({
-                id,
-                name: value,
-                owner: data.myName,
-                deputies: [],
-                members: [data.myName],
-                requests: []
-            });
-            data.messages[id] = [];
-            data.myChats.push(id);
-        } else {
-            const id = 'friend_' + Date.now();
-            data.friends.push({ id, name: value, status: 'онлайн' });
-            data.messages[id] = [];
+        // ===== РЕНДЕРИНГ =====
+        function renderAll() {
+            renderSidebar();
+            renderContent(currentSection);
         }
 
-        document.getElementById('modalOverlay').classList.remove('open');
-        renderAll();
-    });
+        function renderSidebar() {
+            const cityList = document.getElementById('cityList');
+            const cityBadge = document.getElementById('cityBadge');
+            cityBadge.textContent = data.cities.length;
+            cityList.innerHTML = `
+                ${data.cities.map(c => `
+                    <div class="sub-item" onclick="openCity('${c.id}')">
+                        <span class="sub-icon">🏙️</span> ${c.name}
+                        <span class="sub-badge">${c.members.length} 👥</span>
+                    </div>
+                `).join('')}
+                <div class="sub-action" onclick="openModal('city')">➕ Создать город</div>
+            `;
 
-    // ===== ПЕРЕКЛЮЧЕНИЕ РАЗДЕЛОВ =====
-    document.querySelectorAll('.sidebar-item').forEach(item => {
-        item.addEventListener('click', function() {
-            const section = this.dataset.section;
-            if (section === 'cities' || section === 'friends' || section === 'chats') {
-                const wasOpen = this.classList.contains('active');
-                if (wasOpen && (section === 'cities' || section === 'friends')) {
-                    document.getElementById('cityList').style.display = 'none';
-                    document.getElementById('friendList').style.display = 'none';
-                    this.classList.remove('active');
+            const friendList = document.getElementById('friendList');
+            const friendBadge = document.getElementById('friendBadge');
+            friendBadge.textContent = data.friends.length;
+            friendList.innerHTML = `
+                ${data.friends.map(f => `
+                    <div class="sub-item" onclick="openFriendChat('${f.id}')">
+                        <span class="sub-icon">${f.status === 'онлайн' ? '🟢' : '⚫'}</span> ${f.name}
+                        <span class="sub-badge">${f.status}</span>
+                    </div>
+                `).join('')}
+                <div class="sub-action" onclick="openModal('friend')">➕ Добавить друга</div>
+            `;
+
+            const chatList = document.getElementById('chatList');
+            const chatBadge = document.getElementById('chatBadge');
+            const myChats = data.myChats || [];
+            chatBadge.textContent = myChats.length;
+
+            let chatHtml = '';
+            myChats.forEach(id => {
+                const city = data.cities.find(c => c.id === id);
+                if (city) {
+                    chatHtml += `
+                        <div class="sub-item" onclick="openCityChat('${id}')">
+                            <span class="sub-icon">🏙️</span> ${city.name} (город)
+                        </div>
+                    `;
                     return;
                 }
+                const friend = data.friends.find(f => f.id === id);
+                if (friend) {
+                    chatHtml += `
+                        <div class="sub-item" onclick="openFriendChat('${id}')">
+                            <span class="sub-icon">👤</span> ${friend.name}
+                        </div>
+                    `;
+                }
+            });
+            chatList.innerHTML = chatHtml || '<div style="padding:8px 16px;color:var(--gray);font-size:13px;">Нет активных чатов</div>';
+
+            document.querySelectorAll('.sidebar-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.section === currentSection);
+            });
+
+            document.getElementById('cityList').style.display = currentSection === 'cities' ? 'block' : 'none';
+            document.getElementById('friendList').style.display = currentSection === 'friends' ? 'block' : 'none';
+            document.getElementById('chatList').style.display = currentSection === 'chats' ? 'block' : 'none';
+        }
+
+        function renderContent(section) {
+            const title = document.getElementById('sectionTitle');
+            const container = document.getElementById('sectionContent');
+            const actions = document.getElementById('sectionActions');
+
+            const chatWindow = document.querySelector('.chat-window');
+            if (chatWindow) chatWindow.remove();
+
+            switch(section) {
+                case 'news':
+                    title.textContent = '📰 Новости';
+                    if (data.myName === data.adminName) {
+                        actions.innerHTML = `<button class="btn btn-green" onclick="createNews()">+ Создать новость</button>`;
+                    } else {
+                        actions.innerHTML = '';
+                    }
+                    container.innerHTML = data.news.map(p => `
+                        <div class="post-card">
+                            <div class="post-card__header">
+                                <div class="post-card__avatar">${p.author.charAt(0)}</div>
+                                <span class="post-card__author">${p.author}</span>
+                                <span class="post-card__date">${p.date}</span>
+                            </div>
+                            <span class="post-card__badge news">Новость</span>
+                            <div class="post-card__title">${p.title}</div>
+                            <div class="post-card__text">${p.text}</div>
+                        </div>
+                    `).join('');
+                    break;
+
+                case 'general':
+                    title.textContent = '💬 Общий форум';
+                    actions.innerHTML = `<button class="btn btn-green" onclick="createGeneralPost()">+ Создать пост</button>`;
+                    container.innerHTML = data.general.map(p => `
+                        <div class="post-card">
+                            <div class="post-card__header">
+                                <div class="post-card__avatar">${p.author.charAt(0)}</div>
+                                <span class="post-card__author">${p.author}</span>
+                                <span class="post-card__date">${p.date}</span>
+                            </div>
+                            <span class="post-card__badge">Общее</span>
+                            <div class="post-card__title">${p.title}</div>
+                            <div class="post-card__text">${p.text}</div>
+                        </div>
+                    `).join('');
+                    break;
+
+                case 'cities':
+                    title.textContent = '🏙️ Города';
+                    actions.innerHTML = `<button class="btn btn-purple" onclick="openModal('city')">+ Создать город</button>`;
+                    if (data.cities.length === 0) {
+                        container.innerHTML = `<div class="empty-state"><div class="icon">🏙️</div>Городов пока нет</div>`;
+                    } else {
+                        container.innerHTML = data.cities.map(c => {
+                            const isMember = c.members.includes(data.myName);
+                            const hasRequest = c.requests && c.requests.includes(data.myName);
+                            const isOwner = c.owner === data.myName;
+                            const isDeputy = c.deputies && c.deputies.includes(data.myName);
+                            const canManage = isOwner || isDeputy;
+
+                            return `
+                                <div class="post-card">
+                                    <div class="post-card__header">
+                                        <span style="font-size:24px;">🏙️</span>
+                                        <span class="post-card__author">${c.name}</span>
+                                        <span class="post-card__date">${c.members.length} участников</span>
+                                    </div>
+                                    <div style="color:var(--gray);font-size:14px;margin-bottom:8px;">
+                                        👑 Владелец: ${c.owner} ${c.deputies && c.deputies.length ? `| ⚡ Замы: ${c.deputies.join(', ')}` : ''}
+                                    </div>
+                                    <div style="color:var(--gray);font-size:14px;margin-bottom:12px;">
+                                        👥 ${c.members.join(', ') || 'нет участников'}
+                                    </div>
+                                    <div class="post-card__actions">
+                                        ${isMember ? 
+                                            `<button class="btn btn-green" onclick="openCityChat('${c.id}')">💬 Чат</button>` :
+                                            hasRequest ?
+                                                `<button class="btn btn-gray" disabled>⏳ Заявка отправлена</button>` :
+                                                `<button class="btn btn-purple" onclick="sendRequest('${c.id}')">📩 Подать заявку</button>`
+                                        }
+                                        ${canManage && c.requests && c.requests.length > 0 ? `
+                                            <button class="btn btn-green" onclick="manageRequests('${c.id}')">📩 Заявки (${c.requests.length})</button>
+                                        ` : ''}
+                                        ${isMember && !isOwner ? `
+                                            <button class="btn btn-red" onclick="leaveCity('${c.id}')">🚪 Покинуть</button>
+                                        ` : ''}
+                                        ${isOwner ? `
+                                            <button class="btn btn-red" onclick="deleteCity('${c.id}')">🗑️ Удалить город</button>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                    break;
+
+                case 'friends':
+                    title.textContent = '👥 Друзья';
+                    actions.innerHTML = `<button class="btn btn-purple" onclick="openModal('friend')">+ Добавить друга</button>`;
+                    container.innerHTML = data.friends.map(f => `
+                        <div class="post-card" onclick="openFriendChat('${f.id}')" style="cursor:pointer;">
+                            <div class="post-card__header">
+                                <div class="post-card__avatar">${f.name.charAt(0)}</div>
+                                <span class="post-card__author">${f.name}</span>
+                                <span class="post-card__date">${f.status === 'онлайн' ? '🟢 онлайн' : '⚫ офлайн'}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                    break;
+
+                case 'chats':
+                    title.textContent = '💬 Чаты';
+                    actions.innerHTML = '';
+                    const myChats = data.myChats || [];
+                    if (myChats.length === 0) {
+                        container.innerHTML = `<div class="empty-state"><div class="icon">💬</div>Нет активных чатов</div>`;
+                    } else {
+                        let html = '';
+                        myChats.forEach(id => {
+                            const city = data.cities.find(c => c.id === id);
+                            if (city) {
+                                html += `
+                                    <div class="post-card" onclick="openCityChat('${id}')" style="cursor:pointer;">
+                                        <div class="post-card__header">
+                                            <span style="font-size:24px;">🏙️</span>
+                                            <span class="post-card__author">${city.name}</span>
+                                            <span class="post-card__date">городской чат</span>
+                                        </div>
+                                    </div>
+                                `;
+                                return;
+                            }
+                            const friend = data.friends.find(f => f.id === id);
+                            if (friend) {
+                                html += `
+                                    <div class="post-card" onclick="openFriendChat('${id}')" style="cursor:pointer;">
+                                        <div class="post-card__header">
+                                            <div class="post-card__avatar">${friend.name.charAt(0)}</div>
+                                            <span class="post-card__author">${friend.name}</span>
+                                            <span class="post-card__date">личный чат</span>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        });
+                        container.innerHTML = html;
+                    }
+                    break;
             }
-            currentSection = section;
+        }
+
+        // ===== СОЗДАНИЕ НОВОСТИ =====
+        function createNews() {
+            if (data.myName !== data.adminName) {
+                alert('⛔ Только администратор может создавать новости!');
+                return;
+            }
+            const title = prompt('📰 Заголовок новости:');
+            if (!title) return;
+            const text = prompt('📝 Текст новости:');
+            if (!text) return;
+            
+            data.news.unshift({ 
+                author: 'Администрация', 
+                date: 'Только что', 
+                title: title, 
+                text: text 
+            });
+            renderContent('news');
+            renderSidebar();
+            alert('✅ Новость создана!');
+        }
+
+        // ===== УДАЛЕНИЕ ГОРОДА =====
+        function deleteCity(id) {
+            const city = data.cities.find(c => c.id === id);
+            if (!city) return;
+            if (city.owner !== data.myName) {
+                alert('👑 Только владелец может удалить город!');
+                return;
+            }
+            if (!confirm(`🗑️ Удалить город "${city.name}"? Это действие нельзя отменить!`)) return;
+            
+            data.cities = data.cities.filter(c => c.id !== id);
+            delete data.messages[id];
+            data.myChats = data.myChats.filter(c => c !== id);
+            
+            renderAll();
+            alert(`✅ Город "${city.name}" удалён!`);
+        }
+
+        // ===== ЗАЯВКИ В ГОРОД =====
+        function sendRequest(cityId) {
+            const city = data.cities.find(c => c.id === cityId);
+            if (!city) return;
+            if (!city.requests) city.requests = [];
+            if (city.requests.includes(data.myName)) return alert('Заявка уже отправлена!');
+            city.requests.push(data.myName);
+            renderContent('cities');
+            renderSidebar();
+            alert('✅ Заявка отправлена! Ожидайте решения владельца.');
+        }
+
+        function manageRequests(cityId) {
+            const city = data.cities.find(c => c.id === cityId);
+            if (!city || !city.requests || city.requests.length === 0) return alert('Нет заявок');
+
+            const list = city.requests.map((name, i) => 
+                `${i+1}. ${name}`
+            ).join('\n');
+
+            const choice = prompt(`Заявки в город "${city.name}":\n\n${list}\n\nВведите номер для принятия или "отклонить N" для отклонения:`);
+            if (!choice) return;
+
+            if (choice.startsWith('отклонить')) {
+                const num = parseInt(choice.split(' ')[1]) - 1;
+                if (num >= 0 && num < city.requests.length) {
+                    city.requests.splice(num, 1);
+                    renderContent('cities');
+                    renderSidebar();
+                    alert('❌ Заявка отклонена');
+                }
+                return;
+            }
+
+            const num = parseInt(choice) - 1;
+            if (num >= 0 && num < city.requests.length) {
+                const name = city.requests[num];
+                city.requests.splice(num, 1);
+                if (!city.members.includes(name)) city.members.push(name);
+                if (!data.myChats.includes(cityId)) data.myChats.push(cityId);
+                renderContent('cities');
+                renderSidebar();
+                alert(`✅ ${name} принят в город!`);
+            }
+        }
+
+        // ===== ПОКИНУТЬ ГОРОД =====
+        function leaveCity(id) {
+            if (!confirm('Покинуть город?')) return;
+            const city = data.cities.find(c => c.id === id);
+            if (!city) return;
+            if (city.owner === data.myName) return alert('👑 Владелец не может покинуть город!');
+            city.members = city.members.filter(m => m !== data.myName);
+            data.myChats = data.myChats.filter(c => c !== id);
+            renderContent('cities');
+            renderSidebar();
+        }
+
+        // ===== ОТКРЫТИЕ ГОРОДА =====
+        function openCity(id) {
+            currentSection = 'cities';
+            renderAll();
+            setTimeout(() => {
+                const cards = document.querySelectorAll('.post-card');
+                const city = data.cities.find(c => c.id === id);
+                if (city) {
+                    const idx = data.cities.indexOf(city);
+                    if (cards[idx]) cards[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        }
+
+        // ===== ЧАТЫ =====
+        function renderChat(chatId, name, type) {
+            currentChatId = chatId;
+            const container = document.getElementById('sectionContent');
+            const title = document.getElementById('sectionTitle');
+            const actions = document.getElementById('sectionActions');
+
+            actions.innerHTML = '';
+
+            const city = data.cities.find(c => c.id === chatId);
+            if (city && !city.members.includes(data.myName)) {
+                container.innerHTML = `<div class="empty-state"><div class="icon">🔒</div>Вы не в городе</div>`;
+                return;
+            }
+
+            const msgs = data.messages[chatId] || [];
+
+            container.innerHTML = `
+                <div class="chat-window">
+                    <div class="chat-window__header">
+                        <span>💬 ${name}</span>
+                        <span class="status">${type === 'city' ? 'городской чат' : 'личный чат'}</span>
+                        ${type === 'city' ? `<button class="btn btn-red" style="margin-left:auto;padding:4px 12px;font-size:12px;" onclick="leaveCity('${chatId}')">🚪 Покинуть</button>` : ''}
+                    </div>
+                    <div class="chat-window__messages" id="chatMessages">
+                        ${msgs.length === 0 ? '<div class="empty-state">Напишите первое сообщение!</div>' :
+                            msgs.map(m => `
+                                <div class="message ${m.from === 'me' ? 'message--self' : 'message--other'}">
+                                    ${m.from !== 'me' ? `<strong>${m.from}</strong><br/>` : ''}
+                                    ${m.text}
+                                    <span class="message__time">${m.time}</span>
+                                </div>
+                            `).join('')
+                        }
+                    </div>
+                    <div class="chat-window__input">
+                        <input id="chatInput" placeholder="Введите сообщение..." />
+                        <button onclick="sendChatMessage()">Отправить</button>
+                    </div>
+                </div>
+            `;
+
+            const msgsContainer = document.getElementById('chatMessages');
+            if (msgsContainer) msgsContainer.scrollTop = msgsContainer.scrollHeight;
+
+            document.getElementById('chatInput')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendChatMessage();
+            });
+
+            title.textContent = `💬 ${name}`;
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text || !currentChatId) return;
+
+            const now = new Date();
+            const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+
+            if (!data.messages[currentChatId]) data.messages[currentChatId] = [];
+            data.messages[currentChatId].push({ from: 'me', text, time });
+
+            input.value = '';
+            renderChat(currentChatId, getChatName(currentChatId), getChatType(currentChatId));
+            renderSidebar();
+        }
+
+        function getChatName(id) {
+            const city = data.cities.find(c => c.id === id);
+            if (city) return city.name;
+            const friend = data.friends.find(f => f.id === id);
+            return friend ? friend.name : 'Чат';
+        }
+
+        function getChatType(id) {
+            const city = data.cities.find(c => c.id === id);
+            return city ? 'city' : 'friend';
+        }
+
+        function openCityChat(id) {
+            const city = data.cities.find(c => c.id === id);
+            if (!city) return;
+            if (!city.members.includes(data.myName)) {
+                alert('🔒 Вы не в городе!');
+                return;
+            }
+            if (!data.myChats.includes(id)) data.myChats.push(id);
+            renderChat(id, city.name, 'city');
+            renderSidebar();
+        }
+
+        function openFriendChat(id) {
+            const friend = data.friends.find(f => f.id === id);
+            if (!friend) return;
+            if (!data.myChats.includes(id)) data.myChats.push(id);
+            renderChat(id, friend.name, 'friend');
+            renderSidebar();
+        }
+
+        // ===== СОЗДАНИЕ ПОСТОВ =====
+        function createGeneralPost() {
+            const title = prompt('Заголовок:');
+            if (!title) return;
+            const text = prompt('Текст:');
+            if (!text) return;
+            data.general.unshift({ author: data.myName, date: 'Только что', title, text });
+            renderContent('general');
+            renderSidebar();
+        }
+
+        // ===== МОДАЛКА =====
+        let modalType = '';
+
+        function openModal(type) {
+            modalType = type;
+            document.getElementById('modalOverlay').classList.add('open');
+            document.getElementById('modalTitle').textContent = type === 'city' ? '🏙️ Создать город' : '👥 Добавить друга';
+            document.getElementById('modalLabel').textContent = type === 'city' ? 'Название города' : 'Discord ник';
+            document.getElementById('modalInput').value = '';
+            document.getElementById('modalInput').placeholder = type === 'city' ? 'Введите название...' : 'Введите ник...';
+        }
+
+        document.getElementById('modalCloseBtn').addEventListener('click', () => {
+            document.getElementById('modalOverlay').classList.remove('open');
+        });
+
+        document.getElementById('modalSaveBtn').addEventListener('click', () => {
+            const input = document.getElementById('modalInput');
+            const value = input.value.trim();
+            if (!value) return alert('Заполните поле!');
+
+            if (modalType === 'city') {
+                const id = 'city_' + Date.now();
+                data.cities.push({ 
+                    id, 
+                    name: value, 
+                    owner: data.myName,
+                    deputies: [],
+                    members: [data.myName],
+                    requests: []
+                });
+                data.messages[id] = [];
+                data.myChats.push(id);
+            } else {
+                const id = 'friend_' + Date.now();
+                data.friends.push({ id, name: value, status: 'онлайн' });
+                data.messages[id] = [];
+            }
+
+            document.getElementById('modalOverlay').classList.remove('open');
             renderAll();
         });
-    });
 
-    // ===== ИНИЦИАЛИЗАЦИЯ =====
-    renderAll();
-</script>
+        // ===== ПЕРЕКЛЮЧЕНИЕ РАЗДЕЛОВ =====
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const section = this.dataset.section;
+                if (section === 'cities' || section === 'friends' || section === 'chats') {
+                    const wasOpen = this.classList.contains('active');
+                    if (wasOpen && (section === 'cities' || section === 'friends')) {
+                        document.getElementById('cityList').style.display = 'none';
+                        document.getElementById('friendList').style.display = 'none';
+                        this.classList.remove('active');
+                        return;
+                    }
+                }
+                currentSection = section;
+                renderAll();
+            });
+        });
+
+        // ===== ИНИЦИАЛИЗАЦИЯ =====
+        renderAll();
+    </script>
 
 </body>
 </html>

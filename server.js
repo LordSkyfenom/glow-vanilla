@@ -5,16 +5,22 @@ const { Pool } = require('pg');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Подключение к Neon
+// ===== ПОДКЛЮЧЕНИЕ К NEON =====
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 
-// Статика
+// ===== СЕКРЕТЫ ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ =====
+const ADMIN_ID = process.env.ADMIN_ID || 'Игрок';
+const PLAYER_ROLE_ID = process.env.PLAYER_ROLE_ID || 'default';
+const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID || 'admin';
+
+// ===== MIDDLEWARE =====
+app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// API: онлайн
+// ===== API: ОНЛАЙН =====
 app.get('/api/online', async (req, res) => {
     try {
         const result = await pool.query('SELECT online FROM server_status ORDER BY id DESC LIMIT 1');
@@ -24,6 +30,8 @@ app.get('/api/online', async (req, res) => {
     }
 });
 
+// ===== ЗАПУСК =====
 app.listen(PORT, () => {
     console.log(`🚀 Glow Vanilla запущен на порту ${PORT}`);
+    console.log(`👑 Админ ID: ${ADMIN_ID}`);
 });

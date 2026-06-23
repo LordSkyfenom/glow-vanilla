@@ -1164,9 +1164,34 @@
             }
         }
 
+        // ============================================================
+        // ПОКИНУТЬ ГОРОД
+        // ============================================================
         async function leaveCity(cityId) {
             if (!confirm('🚪 Покинуть город?')) return;
-            alert('⏳ Функция в разработке');
+
+            try {
+                const res = await fetch(`/api/cities/${cityId}/leave`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Ошибка');
+                }
+
+                await loadData();
+                
+                if (currentChatId === `city_${cityId}`) {
+                    currentChatId = null;
+                }
+
+                renderContent('cities');
+                alert('✅ Вы покинули город!');
+            } catch (e) {
+                alert('❌ ' + e.message);
+            }
         }
 
         function openCity(cityId) {

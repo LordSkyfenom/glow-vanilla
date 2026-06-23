@@ -9,9 +9,7 @@ async function updateOnline() {
     }
 }
 
-// Запускаем при загрузке
 document.addEventListener('DOMContentLoaded', () => {
     updateOnline();
-    // Обновляем каждые 30 секунд
     setInterval(updateOnline, 30000);
 });

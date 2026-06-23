@@ -300,6 +300,38 @@ app.post('/api/cities/:id/accept', isAuth, async (req, res) => {
 });
 
 // ============================================================
+// ПОКИНУТЬ ГОРОД
+// ============================================================
+app.post('/api/cities/:id/leave', isAuth, async (req, res) => {
+    const cityId = parseInt(req.params.id);
+    const userId = req.session.user.id;
+
+    try {
+        const city = await pool.query('SELECT * FROM cities WHERE id = $1', [cityId]);
+        if (city.rows.length === 0) {
+            return res.status(404).json({ error: 'Город не найден' });
+        }
+
+        const members = city.rows[0].members || [];
+        if (!members.includes(userId)) {
+            return res.status(400).json({ error: 'Вы не в этом городе' });
+        }
+
+        if (city.rows[0].owner === userId) {
+            return res.status(400).json({ error: '👑 Владелец не может покинуть город' });
+        }
+
+        const newMembers = members.filter(id => id !== userId);
+        await pool.query('UPDATE cities SET members = $1 WHERE id = $2', [newMembers, cityId]);
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Ошибка выхода из города:', err);
+        res.status(500).json({ error: 'Ошибка выхода из города' });
+    }
+});
+
+// ============================================================
 // 5. API — ДРУЗЬЯ
 // ============================================================
 

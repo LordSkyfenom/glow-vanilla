@@ -877,8 +877,9 @@
             friendBadge.textContent = friends.length;
             friendList.innerHTML = `
                 ${friends.map(f => `
-                    <div class="sub-item" onclick="openFriendChat('${f.friend_id}')">
+                    <div class="sub-item friend-item" onclick="openFriendChat('${f.friend_id}')" data-friend-id="${f.friend_id}">
                         <span class="sub-icon">👤</span> ${f.username}
+                        <span class="sub-badge friend-status" style="color:var(--gray);">🔄 загрузка...</span>
                         <span class="sub-badge" style="cursor:pointer;color:#E94560;" onclick="event.stopPropagation();removeFriend('${f.friend_id}')">✕</span>
                     </div>
                 `).join('')}
@@ -1009,11 +1010,11 @@
                     title.textContent = '👥 Друзья';
                     actions.innerHTML = currentUser ? `<button class="btn btn-purple" onclick="addFriend()">+ Добавить друга</button>` : '';
                     container.innerHTML = friends.length ? friends.map(f => `
-                        <div class="post-card" onclick="openFriendChat('${f.friend_id}')" style="cursor:pointer;">
+                        <div class="post-card friend-item" onclick="openFriendChat('${f.friend_id}')" style="cursor:pointer;" data-friend-id="${f.friend_id}">
                             <div class="post-card__header">
                                 <div class="post-card__avatar">${f.username.charAt(0)}</div>
                                 <span class="post-card__author">${f.username}</span>
-                                <span class="post-card__date">🟢 онлайн</span>
+                                <span class="post-card__date friend-status" style="color:var(--gray);">🔄 загрузка...</span>
                                 <button class="btn btn-red" style="padding:4px 12px;font-size:12px;margin-left:auto;" onclick="event.stopPropagation();removeFriend('${f.friend_id}')">✕</button>
                             </div>
                         </div>
@@ -1164,9 +1165,6 @@
             }
         }
 
-        // ============================================================
-        // ПОКИНУТЬ ГОРОД
-        // ============================================================
         async function leaveCity(cityId) {
             if (!confirm('🚪 Покинуть город?')) return;
 
@@ -1239,6 +1237,48 @@
             }
         }
 
+        // ============================================================
+        // УДАЛЕНИЕ СООБЩЕНИЯ
+        // ============================================================
+        async function deleteMessage(messageId) {
+            if (!confirm('🗑️ Удалить это сообщение?')) return;
+
+            try {
+                const res = await fetch(`/api/messages/${messageId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Ошибка');
+                }
+
+                if (currentChatId) {
+                    loadMessages(currentChatId).then(msgs => {
+                        const msgsContainer = document.getElementById('chatMessages');
+                        if (msgsContainer) {
+                            msgsContainer.innerHTML = msgs.map(m => {
+                                const canDelete = currentUser && (m.sender_id === currentUser.id || currentUser.isAdmin);
+                                return `
+                                    <div class="message ${m.sender_id === currentUser?.id ? 'message--self' : 'message--other'}" data-message-id="${m.id}">
+                                        ${m.sender_id !== currentUser?.id ? `<strong>${m.username || 'Unknown'}</strong><br/>` : ''}
+                                        ${m.content}
+                                        <span class="message__time">${new Date(m.created_at).toLocaleTimeString()}</span>
+                                        ${canDelete ? `<button class="btn btn-red" style="padding:2px 8px;font-size:11px;margin-left:8px;" onclick="deleteMessage(${m.id})">🗑️</button>` : ''}
+                                    </div>
+                                `;
+                            }).join('');
+                            msgsContainer.scrollTop = msgsContainer.scrollHeight;
+                        }
+                    });
+                }
+
+                alert('✅ Сообщение удалено!');
+            } catch (e) {
+                alert('❌ ' + e.message);
+            }
+        }
+
         function renderChatWindow(chatId, name, type) {
             const container = document.getElementById('sectionContent');
             const title = document.getElementById('sectionTitle');
@@ -1270,13 +1310,17 @@
                     msgsContainer.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray);">Напишите первое сообщение!</div>';
                     return;
                 }
-                msgsContainer.innerHTML = msgs.map(m => `
-                    <div class="message ${m.sender_id === currentUser?.id ? 'message--self' : 'message--other'}">
-                        ${m.sender_id !== currentUser?.id ? `<strong>${m.username || 'Unknown'}</strong><br/>` : ''}
-                        ${m.content}
-                        <span class="message__time">${new Date(m.created_at).toLocaleTimeString()}</span>
-                    </div>
-                `).join('');
+                msgsContainer.innerHTML = msgs.map(m => {
+                    const canDelete = currentUser && (m.sender_id === currentUser.id || currentUser.isAdmin);
+                    return `
+                        <div class="message ${m.sender_id === currentUser?.id ? 'message--self' : 'message--other'}" data-message-id="${m.id}">
+                            ${m.sender_id !== currentUser?.id ? `<strong>${m.username || 'Unknown'}</strong><br/>` : ''}
+                            ${m.content}
+                            <span class="message__time">${new Date(m.created_at).toLocaleTimeString()}</span>
+                            ${canDelete ? `<button class="btn btn-red" style="padding:2px 8px;font-size:11px;margin-left:8px;" onclick="deleteMessage(${m.id})">🗑️</button>` : ''}
+                        </div>
+                    `;
+                }).join('');
                 msgsContainer.scrollTop = msgsContainer.scrollHeight;
             });
 
@@ -1299,14 +1343,20 @@
                 input.value = '';
                 loadMessages(currentChatId).then(msgs => {
                     const msgsContainer = document.getElementById('chatMessages');
-                    msgsContainer.innerHTML = msgs.map(m => `
-                        <div class="message ${m.sender_id === currentUser?.id ? 'message--self' : 'message--other'}">
-                            ${m.sender_id !== currentUser?.id ? `<strong>${m.username || 'Unknown'}</strong><br/>` : ''}
-                            ${m.content}
-                            <span class="message__time">${new Date(m.created_at).toLocaleTimeString()}</span>
-                        </div>
-                    `).join('');
-                    msgsContainer.scrollTop = msgsContainer.scrollHeight;
+                    if (msgsContainer) {
+                        msgsContainer.innerHTML = msgs.map(m => {
+                            const canDelete = currentUser && (m.sender_id === currentUser.id || currentUser.isAdmin);
+                            return `
+                                <div class="message ${m.sender_id === currentUser?.id ? 'message--self' : 'message--other'}" data-message-id="${m.id}">
+                                    ${m.sender_id !== currentUser?.id ? `<strong>${m.username || 'Unknown'}</strong><br/>` : ''}
+                                    ${m.content}
+                                    <span class="message__time">${new Date(m.created_at).toLocaleTimeString()}</span>
+                                    ${canDelete ? `<button class="btn btn-red" style="padding:2px 8px;font-size:11px;margin-left:8px;" onclick="deleteMessage(${m.id})">🗑️</button>` : ''}
+                                </div>
+                            `;
+                        }).join('');
+                        msgsContainer.scrollTop = msgsContainer.scrollHeight;
+                    }
                 });
             }
         }
@@ -1379,6 +1429,34 @@
                 alert('✅ Друг удалён!');
             } catch (e) {
                 alert('❌ ' + e.message);
+            }
+        }
+
+        // ============================================================
+        // СТАТУС ДРУЗЕЙ (онлайн/офлайн)
+        // ============================================================
+        async function updateFriendsStatus() {
+            try {
+                const res = await fetch('/api/friends/status?_=' + Date.now(), {
+                    headers: { 'Cache-Control': 'no-cache' }
+                });
+                if (!res.ok) return;
+                
+                const friendsData = await res.json();
+                
+                document.querySelectorAll('.friend-item').forEach(item => {
+                    const friendId = item.dataset.friendId;
+                    const friend = friendsData.find(f => f.friend_id === friendId);
+                    if (friend) {
+                        const statusEl = item.querySelector('.friend-status');
+                        if (statusEl) {
+                            statusEl.textContent = friend.online ? '🟢 онлайн' : '⚫ офлайн';
+                            statusEl.style.color = friend.online ? '#00FF88' : '#666';
+                        }
+                    }
+                });
+            } catch (e) {
+                console.warn('Ошибка обновления статуса друзей:', e);
             }
         }
 
@@ -1468,6 +1546,12 @@
         async function init() {
             await loadUser();
             await loadData();
+            
+            // Запускаем обновление статуса друзей
+            if (document.getElementById('friendList')) {
+                setTimeout(updateFriendsStatus, 1500);
+                setInterval(updateFriendsStatus, 15000);
+            }
         }
 
         init();

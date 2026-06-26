@@ -409,6 +409,43 @@ app.delete('/api/friends/:friendId', isAuth, async (req, res) => {
 });
 
 // ============================================================
+// 5.1 API — СТАТУС ДРУЗЕЙ (ОНЛАЙН/ОФЛАЙН)
+// ============================================================
+
+app.get('/api/friends/status', isAuth, async (req, res) => {
+    const userId = req.session.user.id;
+
+    try {
+        const friendsRes = await pool.query(
+            `SELECT f.friend_id, u.username, u.avatar 
+             FROM friends f 
+             JOIN users u ON u.discord_id = f.friend_id 
+             WHERE f.user_id = $1`,
+            [userId]
+        );
+
+        const onlineRes = await pool.query(
+            'SELECT online_players FROM server_status ORDER BY updated_at DESC LIMIT 1'
+        );
+        
+        let onlinePlayers = [];
+        if (onlineRes.rows.length > 0 && onlineRes.rows[0].online_players) {
+            onlinePlayers = onlineRes.rows[0].online_players || [];
+        }
+
+        const friendsWithStatus = friendsRes.rows.map(f => ({
+            ...f,
+            online: onlinePlayers.includes(f.username)
+        }));
+
+        res.json(friendsWithStatus);
+    } catch (err) {
+        console.error('Ошибка получения статуса друзей:', err);
+        res.status(500).json({ error: 'Ошибка получения статуса друзей' });
+    }
+});
+
+// ============================================================
 // 6. API — ЧАТЫ (СООБЩЕНИЯ)
 // ============================================================
 
@@ -482,6 +519,33 @@ app.post('/api/messages', isAuth, async (req, res) => {
 });
 
 // ============================================================
+// 6.1 API — УДАЛИТЬ СООБЩЕНИЕ (автор или админ)
+// ============================================================
+
+app.delete('/api/messages/:messageId', isAuth, async (req, res) => {
+    const messageId = parseInt(req.params.messageId);
+    const userId = req.session.user.id;
+    const isAdmin = req.session.user.isAdmin || false;
+
+    try {
+        const msg = await pool.query('SELECT * FROM messages WHERE id = $1', [messageId]);
+        if (msg.rows.length === 0) {
+            return res.status(404).json({ error: 'Сообщение не найдено' });
+        }
+
+        if (msg.rows[0].sender_id !== userId && !isAdmin) {
+            return res.status(403).json({ error: 'Нет прав на удаление' });
+        }
+
+        await pool.query('DELETE FROM messages WHERE id = $1', [messageId]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Ошибка удаления сообщения:', err);
+        res.status(500).json({ error: 'Ошибка удаления сообщения' });
+    }
+});
+
+// ============================================================
 // 7. API — СТАТИСТИКА ПРОФИЛЯ
 // ============================================================
 
@@ -517,19 +581,20 @@ app.get('/api/user/stats/:discordId', async (req, res) => {
 });
 
 // ============================================================
-// 8. API — ОНЛАЙН (исправлен — использует updated_at)
+// 8. API — ОНЛАЙН
 // ============================================================
 
 app.get('/api/online', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     try {
-        const result = await pool.query('SELECT online FROM server_status ORDER BY updated_at DESC LIMIT 1');
+        const result = await pool.query('SELECT online, online_players FROM server_status ORDER BY updated_at DESC LIMIT 1');
         const online = result.rows[0]?.online ?? 0;
+        const onlinePlayers = result.rows[0]?.online_players || [];
         console.log(`📊 Онлайн на сайте: ${online}`);
-        res.json({ online });
+        res.json({ online, onlinePlayers });
     } catch (err) {
         console.error('Ошибка получения онлайна:', err);
-        res.json({ online: 0 });
+        res.json({ online: 0, onlinePlayers: [] });
     }
 });
 
@@ -540,6 +605,7 @@ app.get('/api/online', async (req, res) => {
 app.get('/api/online/update', async (req, res) => {
     const online = parseInt(req.query.online);
     const secret = req.query.secret;
+    const players = req.query.players ? req.query.players.split(',') : [];
 
     if (secret !== SECRET_KEY) {
         return res.status(403).send('Неверный ключ');
@@ -551,8 +617,8 @@ app.get('/api/online/update', async (req, res) => {
 
     try {
         await pool.query(
-            'INSERT INTO server_status (id, online, updated_at) VALUES (1, $1, NOW()) ON CONFLICT (id) DO UPDATE SET online = $1, updated_at = NOW()',
-            [online]
+            'INSERT INTO server_status (id, online, online_players, updated_at) VALUES (1, $1, $2, NOW()) ON CONFLICT (id) DO UPDATE SET online = $1, online_players = $2, updated_at = NOW()',
+            [online, players]
         );
         console.log(`📊 Онлайн обновлён: ${online} игроков`);
         res.send(`OK: ${online}`);

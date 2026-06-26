@@ -1,5 +1,5 @@
 // ============================================================
-// ОНЛАЙН — обновление с защитой от кеша (максимальная)
+// ОНЛАЙН — обновление с защитой от кеша
 // ============================================================
 
 async function updateOnline() {
@@ -15,11 +15,14 @@ async function updateOnline() {
         });
         const data = await res.json();
         
+        // Ищем элемент по ID (убедись, что в HTML есть id="online-count")
         const onlineCount = document.getElementById('online-count');
         if (onlineCount) {
             const online = data.online || 0;
             onlineCount.textContent = online;
             console.log(`📊 Онлайн обновлён: ${online} игроков`);
+        } else {
+            console.warn('⚠️ Элемент #online-count не найден на странице!');
         }
     } catch (e) {
         console.warn('❌ Ошибка получения онлайна:', e);
@@ -102,3 +105,12 @@ document.addEventListener('DOMContentLoaded', () => {
         setInterval(updateFriendsStatus, 15000);
     }
 });
+
+// Дополнительно: если DOM загрузился, но элемент всё ещё не найден — пробуем ещё раз
+setTimeout(() => {
+    const el = document.getElementById('online-count');
+    if (el && el.textContent === '⏳') {
+        console.log('🔄 Повторная попытка обновления онлайна...');
+        updateOnline();
+    }
+}, 5000);

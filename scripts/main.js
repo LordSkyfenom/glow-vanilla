@@ -1,15 +1,17 @@
 // ============================================================
-// ОНЛАЙН — обновление с защитой от кеша
+// ОНЛАЙН — обновление с защитой от кеша (максимальная)
 // ============================================================
 
 async function updateOnline() {
     try {
-        const res = await fetch('/api/online?_=' + Date.now(), {
+        // Добавляем уникальные параметры КАЖДЫЙ РАЗ
+        const res = await fetch('/api/online?_=' + Date.now() + '&r=' + Math.random(), {
             headers: {
                 'Cache-Control': 'no-cache, no-store, must-revalidate',
                 'Pragma': 'no-cache',
                 'Expires': '0'
-            }
+            },
+            cache: 'no-store'
         });
         const data = await res.json();
         
@@ -52,7 +54,7 @@ async function updateHeaderAvatar() {
 }
 
 // ============================================================
-// СТАТУС ДРУЗЕЙ (пока заглушка)
+// СТАТУС ДРУЗЕЙ (онлайн/офлайн)
 // ============================================================
 
 async function updateFriendsStatus() {
@@ -81,16 +83,22 @@ async function updateFriendsStatus() {
 }
 
 // ============================================================
-// ЗАПУСК
+// ЗАПУСК ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Обновляем онлайн сразу
     updateOnline();
-    updateHeaderAvatar();
-    setInterval(updateOnline, 15000);
     
+    // Обновляем аватар
+    updateHeaderAvatar();
+    
+    // Запускаем автообновление каждые 10 секунд (чаще, чтобы точно обновить)
+    setInterval(updateOnline, 10000);
+    
+    // Если мы на странице форума — обновляем статус друзей
     if (document.getElementById('friendList')) {
-        setTimeout(updateFriendsStatus, 1000);
+        setTimeout(updateFriendsStatus, 1500);
         setInterval(updateFriendsStatus, 15000);
     }
 });

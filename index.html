@@ -6,6 +6,15 @@
     <title>Glow Vanilla — Ванильный Minecraft</title>
     <link rel="stylesheet" href="style.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+    <style>
+        /* Дополнительный стиль, чтобы видеть, что онлайн обновляется */
+        #online-count {
+            transition: color 0.3s;
+        }
+        #online-count.updating {
+            color: #00FF88;
+        }
+    </style>
 </head>
 <body>
 
@@ -34,7 +43,7 @@
             
             <div class="hero__online">
                 <span class="hero__online-dot"></span>
-                <span>Онлайн: <strong id="online-count">42</strong> / 100</span>
+                <span>Онлайн: <strong id="online-count">⏳</strong> / 100</span>
             </div>
 
             <div class="hero__buttons">
@@ -137,7 +146,55 @@
         </div>
     </footer>
 
-    <!-- ===== ПОДКЛЮЧАЕМ main.js с версией для сброса кеша ===== -->
-    <script src="assets/scripts/main.js?v=2"></script>
+    <!-- ===== СКРИПТ С ПРЯМЫМ ЗАПРОСОМ (без кеша) ===== -->
+    <script>
+        (function() {
+            'use strict';
+
+            // Функция обновления онлайна
+            async function updateOnline() {
+                const el = document.getElementById('online-count');
+                if (!el) return;
+
+                // Показываем, что идёт обновление
+                el.textContent = '⏳';
+                el.style.color = '#FFD700';
+
+                try {
+                    const url = '/api/online?_=' + Date.now();
+                    console.log('📤 Запрос онлайна:', url);
+
+                    const res = await fetch(url, {
+                        headers: {
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache'
+                        }
+                    });
+
+                    if (!res.ok) {
+                        throw new Error('HTTP ' + res.status);
+                    }
+
+                    const data = await res.json();
+                    const online = data.online || 0;
+                    
+                    el.textContent = online;
+                    el.style.color = '#00FF88';
+                    console.log('✅ Онлайн обновлён:', online);
+                } catch (e) {
+                    console.error('❌ Ошибка получения онлайна:', e);
+                    el.textContent = '?';
+                    el.style.color = '#E94560';
+                }
+            }
+
+            // Обновляем онлайн при загрузке
+            updateOnline();
+
+            // И каждые 10 секунд
+            setInterval(updateOnline, 10000);
+        })();
+    </script>
+
 </body>
 </html>

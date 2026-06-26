@@ -517,13 +517,13 @@ app.get('/api/user/stats/:discordId', async (req, res) => {
 });
 
 // ============================================================
-// 8. API — ОНЛАЙН (исправлен)
+// 8. API — ОНЛАЙН (исправлен — использует updated_at)
 // ============================================================
 
 app.get('/api/online', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     try {
-        const result = await pool.query('SELECT online FROM server_status ORDER BY created_at DESC LIMIT 1');
+        const result = await pool.query('SELECT online FROM server_status ORDER BY updated_at DESC LIMIT 1');
         const online = result.rows[0]?.online ?? 0;
         console.log(`📊 Онлайн на сайте: ${online}`);
         res.json({ online });
@@ -551,7 +551,7 @@ app.get('/api/online/update', async (req, res) => {
 
     try {
         await pool.query(
-            'INSERT INTO server_status (id, online, created_at) VALUES (1, $1, NOW()) ON CONFLICT (id) DO UPDATE SET online = $1, created_at = NOW()',
+            'INSERT INTO server_status (id, online, updated_at) VALUES (1, $1, NOW()) ON CONFLICT (id) DO UPDATE SET online = $1, updated_at = NOW()',
             [online]
         );
         console.log(`📊 Онлайн обновлён: ${online} игроков`);

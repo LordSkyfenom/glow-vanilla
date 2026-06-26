@@ -52,7 +52,7 @@ async function updateHeaderAvatar() {
 }
 
 // ============================================================
-// СТАТУС ДРУЗЕЙ (онлайн/офлайн)
+// СТАТУС ДРУЗЕЙ (пока заглушка)
 // ============================================================
 
 async function updateFriendsStatus() {
@@ -81,20 +81,14 @@ async function updateFriendsStatus() {
 }
 
 // ============================================================
-// ЗАПУСК ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+// ЗАПУСК
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Обновляем онлайн
     updateOnline();
-    
-    // Обновляем аватар
     updateHeaderAvatar();
-    
-    // Запускаем автообновление онлайна каждые 15 секунд
     setInterval(updateOnline, 15000);
     
-    // Если мы на странице форума — обновляем статус друзей
     if (document.getElementById('friendList')) {
         setTimeout(updateFriendsStatus, 1000);
         setInterval(updateFriendsStatus, 15000);

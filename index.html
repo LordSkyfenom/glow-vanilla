@@ -145,6 +145,9 @@
         (function() {
             'use strict';
 
+            // ============================================================
+            // 1. ОНЛАЙН
+            // ============================================================
             const el = document.getElementById('online-count');
 
             async function updateOnline() {
@@ -165,9 +168,38 @@
                 }
             }
 
-            // Запускаем
+            // ============================================================
+            // 2. АВАТАР ИЗ DISCORD В ХЕДЕРЕ
+            // ============================================================
+            async function updateHeaderAvatar() {
+                try {
+                    const res = await fetch('/api/me');
+                    if (res.ok) {
+                        const user = await res.json();
+                        const avatarUrl = user.avatar
+                            ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+                            : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.id) % 5}.png`;
+                        
+                        const headerImg = document.getElementById('headerAvatar');
+                        if (headerImg) {
+                            headerImg.src = avatarUrl;
+                        }
+                    }
+                } catch (e) {
+                    console.log('Не удалось загрузить аватар');
+                }
+            }
+
+            // ============================================================
+            // 3. ЗАПУСК
+            // ============================================================
             updateOnline();
             setInterval(updateOnline, 10000);
+
+            // Аватар обновляем сразу и при каждом входе
+            updateHeaderAvatar();
+            // И повторяем через 2 секунды (на случай, если /api/me ещё не ответил)
+            setTimeout(updateHeaderAvatar, 2000);
         })();
     </script>
 

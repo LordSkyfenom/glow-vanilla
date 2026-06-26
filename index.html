@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<meta http-equiv="Pragma" content="no-cache" />
-<meta http-equiv="Expires" content="0" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Glow Vanilla — Ванильный Minecraft</title>
+    
+    <!-- ===== МЕТА-ТЕГИ ДЛЯ ОТКЛЮЧЕНИЯ КЕША ===== -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
     <link rel="stylesheet" href="style.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
 </head>
@@ -37,7 +40,7 @@
             
             <div class="hero__online">
                 <span class="hero__online-dot"></span>
-                <span>Онлайн: <strong id="online-count">42</strong> / 100</span>
+                <span>Онлайн: <strong id="online-count">⏳</strong> / 100</span>
             </div>
 
             <div class="hero__buttons">
@@ -141,31 +144,6 @@
     </footer>
 
     <!-- ===== ПОДКЛЮЧАЕМ main.js С ВЕРСИЕЙ ДЛЯ СБРОСА КЕША ===== -->
-    <script src="assets/scripts/main.js?v=2"></script>
-    
-    <!-- ===== ДОПОЛНИТЕЛЬНЫЙ СКРИПТ ДЛЯ АВАТАРА ===== -->
-    <script>
-        // Подтягиваем аватар из Discord в хедер
-        async function updateHeaderAvatar() {
-            try {
-                const res = await fetch('/api/me');
-                if (res.ok) {
-                    const user = await res.json();
-                    const avatarUrl = user.avatar
-                        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
-                        : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.id) % 5}.png`;
-                    const headerImg = document.getElementById('headerAvatar');
-                    if (headerImg) {
-                        headerImg.src = avatarUrl;
-                    }
-                }
-            } catch (e) {
-                console.log('Не удалось загрузить аватар');
-            }
-        }
-
-        // Запускаем при загрузке страницы
-        document.addEventListener('DOMContentLoaded', updateHeaderAvatar);
-    </script>
+    <script src="assets/scripts/main.js?v=4"></script>
 </body>
 </html>

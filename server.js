@@ -409,33 +409,22 @@ app.delete('/api/friends/:friendId', isAuth, async (req, res) => {
 });
 
 // ============================================================
-// 5.1 API — СТАТУС ДРУЗЕЙ (ОНЛАЙН/ОФЛАЙН)
+// 5.1 API — СТАТУС ДРУЗЕЙ (ОНЛАЙН/ОФЛАЙН) — ВРЕМЕННО ОТКЛЮЧАЕМ
 // ============================================================
-
 app.get('/api/friends/status', isAuth, async (req, res) => {
-    const userId = req.session.user.id;
-
     try {
         const friendsRes = await pool.query(
             `SELECT f.friend_id, u.username, u.avatar 
              FROM friends f 
              JOIN users u ON u.discord_id = f.friend_id 
              WHERE f.user_id = $1`,
-            [userId]
+            [req.session.user.id]
         );
 
-        const onlineRes = await pool.query(
-            'SELECT online_players FROM server_status ORDER BY updated_at DESC LIMIT 1'
-        );
-        
-        let onlinePlayers = [];
-        if (onlineRes.rows.length > 0 && onlineRes.rows[0].online_players) {
-            onlinePlayers = onlineRes.rows[0].online_players || [];
-        }
-
+        // Пока все друзья считаются офлайн (заглушка)
         const friendsWithStatus = friendsRes.rows.map(f => ({
             ...f,
-            online: onlinePlayers.includes(f.username)
+            online: false
         }));
 
         res.json(friendsWithStatus);
@@ -519,7 +508,7 @@ app.post('/api/messages', isAuth, async (req, res) => {
 });
 
 // ============================================================
-// 6.1 API — УДАЛИТЬ СООБЩЕНИЕ (автор или админ)
+// 6.1 API — УДАЛИТЬ СООБЩЕНИЕ
 // ============================================================
 
 app.delete('/api/messages/:messageId', isAuth, async (req, res) => {
@@ -581,31 +570,29 @@ app.get('/api/user/stats/:discordId', async (req, res) => {
 });
 
 // ============================================================
-// 8. API — ОНЛАЙН
+// 8. API — ОНЛАЙН (ИСПРАВЛЕННЫЙ — БЕЗ online_players)
 // ============================================================
 
 app.get('/api/online', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     try {
-        const result = await pool.query('SELECT online, online_players FROM server_status ORDER BY updated_at DESC LIMIT 1');
+        const result = await pool.query('SELECT online FROM server_status ORDER BY updated_at DESC LIMIT 1');
         const online = result.rows[0]?.online ?? 0;
-        const onlinePlayers = result.rows[0]?.online_players || [];
         console.log(`📊 Онлайн на сайте: ${online}`);
-        res.json({ online, onlinePlayers });
+        res.json({ online });
     } catch (err) {
         console.error('Ошибка получения онлайна:', err);
-        res.json({ online: 0, onlinePlayers: [] });
+        res.json({ online: 0 });
     }
 });
 
 // ============================================================
-// 9. API — ОБНОВЛЕНИЕ ОНЛАЙНА (от плагина)
+// 9. API — ОБНОВЛЕНИЕ ОНЛАЙНА (ОТ ПЛАГИНА)
 // ============================================================
 
 app.get('/api/online/update', async (req, res) => {
     const online = parseInt(req.query.online);
     const secret = req.query.secret;
-    const players = req.query.players ? req.query.players.split(',') : [];
 
     if (secret !== SECRET_KEY) {
         return res.status(403).send('Неверный ключ');
@@ -617,8 +604,8 @@ app.get('/api/online/update', async (req, res) => {
 
     try {
         await pool.query(
-            'INSERT INTO server_status (id, online, online_players, updated_at) VALUES (1, $1, $2, NOW()) ON CONFLICT (id) DO UPDATE SET online = $1, online_players = $2, updated_at = NOW()',
-            [online, players]
+            'INSERT INTO server_status (id, online, updated_at) VALUES (1, $1, NOW()) ON CONFLICT (id) DO UPDATE SET online = $1, updated_at = NOW()',
+            [online]
         );
         console.log(`📊 Онлайн обновлён: ${online} игроков`);
         res.send(`OK: ${online}`);

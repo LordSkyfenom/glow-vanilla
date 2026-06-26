@@ -4,7 +4,6 @@
 
 async function updateOnline() {
     try {
-        // Добавляем _=Date.now() чтобы браузер не кешировал ответ
         const res = await fetch('/api/online?_=' + Date.now(), {
             headers: {
                 'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -53,16 +52,46 @@ async function updateHeaderAvatar() {
 }
 
 // ============================================================
+// СТАТУС ДРУЗЕЙ (онлайн/офлайн)
+// ============================================================
+
+async function updateFriendsStatus() {
+    try {
+        const res = await fetch('/api/friends/status?_=' + Date.now(), {
+            headers: { 'Cache-Control': 'no-cache' }
+        });
+        if (!res.ok) return;
+        
+        const friends = await res.json();
+        
+        document.querySelectorAll('.friend-item').forEach(item => {
+            const friendId = item.dataset.friendId;
+            const friend = friends.find(f => f.friend_id === friendId);
+            if (friend) {
+                const statusEl = item.querySelector('.friend-status');
+                if (statusEl) {
+                    statusEl.textContent = friend.online ? '🟢 онлайн' : '⚫ офлайн';
+                    statusEl.style.color = friend.online ? '#00FF88' : '#666';
+                }
+            }
+        });
+    } catch (e) {
+        console.warn('Ошибка обновления статуса друзей:', e);
+    }
+}
+
+// ============================================================
 // ЗАПУСК ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Обновляем онлайн сразу
     updateOnline();
-    
-    // Обновляем аватар
     updateHeaderAvatar();
-    
-    // Запускаем автообновление каждые 15 секунд
     setInterval(updateOnline, 15000);
+    
+    // Если мы на странице форума — обновляем статус друзей
+    if (document.getElementById('friendList')) {
+        setTimeout(updateFriendsStatus, 1000);
+        setInterval(updateFriendsStatus, 15000);
+    }
 });

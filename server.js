@@ -530,19 +530,20 @@ app.get('/api/online', async (req, res) => {
 });
 
 // ============================================================
-// 9. API — ОБНОВЛЕНИЕ ОНЛАЙНА (HTTP от плагина)
+// 9. API — ОБНОВЛЕНИЕ ОНЛАЙНА (GET-запрос от плагина)
 // ============================================================
 
-app.post('/api/online/update', async (req, res) => {
-    const { online, secret } = req.body;
+app.get('/api/online/update', async (req, res) => {
+    const online = parseInt(req.query.online);
+    const secret = req.query.secret;
 
     // Проверяем секретный ключ
     if (secret !== SECRET_KEY) {
-        return res.status(403).json({ error: 'Неверный ключ' });
+        return res.status(403).send('Неверный ключ');
     }
 
-    if (typeof online !== 'number' || online < 0) {
-        return res.status(400).json({ error: 'Некорректное значение онлайна' });
+    if (isNaN(online) || online < 0) {
+        return res.status(400).send('Некорректное значение онлайна');
     }
 
     try {
@@ -550,11 +551,11 @@ app.post('/api/online/update', async (req, res) => {
             'INSERT INTO server_status (online) VALUES ($1)',
             [online]
         );
-        console.log(`📊 Онлайн обновлён: ${online} игроков (через HTTP)`);
-        res.json({ success: true, online });
+        console.log(`📊 Онлайн обновлён: ${online} игроков (через GET)`);
+        res.send(`OK: ${online}`);
     } catch (err) {
         console.error('Ошибка обновления онлайна:', err);
-        res.status(500).json({ error: 'Ошибка базы данных' });
+        res.status(500).send('Ошибка базы данных');
     }
 });
 

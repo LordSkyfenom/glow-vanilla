@@ -1262,9 +1262,11 @@
                                 return `
                                     <div class="message ${m.sender_id === currentUser?.id ? 'message--self' : 'message--other'}" data-message-id="${m.id}">
                                         ${m.sender_id !== currentUser?.id ? `<strong>${m.username || 'Unknown'}</strong><br/>` : ''}
-                                        ${m.content}
+                                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                            <span style="word-break: break-word;">${m.content}</span>
+                                            ${canDelete ? `<button class="btn btn-red" style="padding:2px 8px;font-size:11px;flex-shrink:0;" onclick="deleteMessage(${m.id})">🗑️</button>` : ''}
+                                        </div>
                                         <span class="message__time">${new Date(m.created_at).toLocaleTimeString()}</span>
-                                        ${canDelete ? `<button class="btn btn-red" style="padding:2px 8px;font-size:11px;margin-left:8px;" onclick="deleteMessage(${m.id})">🗑️</button>` : ''}
                                     </div>
                                 `;
                             }).join('');
@@ -1315,9 +1317,11 @@
                     return `
                         <div class="message ${m.sender_id === currentUser?.id ? 'message--self' : 'message--other'}" data-message-id="${m.id}">
                             ${m.sender_id !== currentUser?.id ? `<strong>${m.username || 'Unknown'}</strong><br/>` : ''}
-                            ${m.content}
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span style="word-break: break-word;">${m.content}</span>
+                                ${canDelete ? `<button class="btn btn-red" style="padding:2px 8px;font-size:11px;flex-shrink:0;" onclick="deleteMessage(${m.id})">🗑️</button>` : ''}
+                            </div>
                             <span class="message__time">${new Date(m.created_at).toLocaleTimeString()}</span>
-                            ${canDelete ? `<button class="btn btn-red" style="padding:2px 8px;font-size:11px;margin-left:8px;" onclick="deleteMessage(${m.id})">🗑️</button>` : ''}
                         </div>
                     `;
                 }).join('');
@@ -1349,9 +1353,11 @@
                             return `
                                 <div class="message ${m.sender_id === currentUser?.id ? 'message--self' : 'message--other'}" data-message-id="${m.id}">
                                     ${m.sender_id !== currentUser?.id ? `<strong>${m.username || 'Unknown'}</strong><br/>` : ''}
-                                    ${m.content}
+                                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                        <span style="word-break: break-word;">${m.content}</span>
+                                        ${canDelete ? `<button class="btn btn-red" style="padding:2px 8px;font-size:11px;flex-shrink:0;" onclick="deleteMessage(${m.id})">🗑️</button>` : ''}
+                                    </div>
                                     <span class="message__time">${new Date(m.created_at).toLocaleTimeString()}</span>
-                                    ${canDelete ? `<button class="btn btn-red" style="padding:2px 8px;font-size:11px;margin-left:8px;" onclick="deleteMessage(${m.id})">🗑️</button>` : ''}
                                 </div>
                             `;
                         }).join('');

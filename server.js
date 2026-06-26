@@ -24,6 +24,7 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const GUILD_ID = process.env.GUILD_ID;
 const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID;
 const ADMIN_ID = process.env.ADMIN_ID;
+const SECRET_KEY = process.env.SECRET_KEY || 'glowvanilla_secret_2024';
 
 // ============================================================
 // СЕССИИ
@@ -529,7 +530,36 @@ app.get('/api/online', async (req, res) => {
 });
 
 // ============================================================
-// 9. API — ПОИСК ПОЛЬЗОВАТЕЛЕЙ
+// 9. API — ОБНОВЛЕНИЕ ОНЛАЙНА (HTTP от плагина)
+// ============================================================
+
+app.post('/api/online/update', async (req, res) => {
+    const { online, secret } = req.body;
+
+    // Проверяем секретный ключ
+    if (secret !== SECRET_KEY) {
+        return res.status(403).json({ error: 'Неверный ключ' });
+    }
+
+    if (typeof online !== 'number' || online < 0) {
+        return res.status(400).json({ error: 'Некорректное значение онлайна' });
+    }
+
+    try {
+        await pool.query(
+            'INSERT INTO server_status (online) VALUES ($1)',
+            [online]
+        );
+        console.log(`📊 Онлайн обновлён: ${online} игроков (через HTTP)`);
+        res.json({ success: true, online });
+    } catch (err) {
+        console.error('Ошибка обновления онлайна:', err);
+        res.status(500).json({ error: 'Ошибка базы данных' });
+    }
+});
+
+// ============================================================
+// 10. API — ПОИСК ПОЛЬЗОВАТЕЛЕЙ
 // ============================================================
 
 app.get('/api/users/search', isAuth, async (req, res) => {
@@ -553,7 +583,7 @@ app.get('/api/users/search', isAuth, async (req, res) => {
 });
 
 // ============================================================
-// 10. API — ПОЛЬЗОВАТЕЛЬ ПО ID
+// 11. API — ПОЛЬЗОВАТЕЛЬ ПО ID
 // ============================================================
 
 app.get('/api/users/:discordId', async (req, res) => {
@@ -581,4 +611,5 @@ app.listen(PORT, () => {
     console.log(`🤖 Бот токен: ${BOT_TOKEN ? '✅ Установлен' : '❌ НЕ УСТАНОВЛЕН'}`);
     console.log(`👑 Роль админа ID: ${ADMIN_ROLE_ID}`);
     console.log(`📊 База данных: ${process.env.DATABASE_URL ? '✅ Подключена' : '❌ НЕ ПОДКЛЮЧЕНА'}`);
+    console.log(`🔑 Секретный ключ: ${SECRET_KEY ? '✅ Установлен' : '❌ НЕ УСТАНОВЛЕН'}`);
 });

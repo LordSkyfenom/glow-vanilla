@@ -85,8 +85,13 @@ async function updateFriendsStatus() {
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Обновляем онлайн
     updateOnline();
+    
+    // Обновляем аватар
     updateHeaderAvatar();
+    
+    // Запускаем автообновление онлайна каждые 15 секунд
     setInterval(updateOnline, 15000);
     
     // Если мы на странице форума — обновляем статус друзей

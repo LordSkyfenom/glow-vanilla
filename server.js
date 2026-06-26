@@ -517,27 +517,30 @@ app.get('/api/user/stats/:discordId', async (req, res) => {
 });
 
 // ============================================================
-// 8. API — ОНЛАЙН
+// 8. API — ОНЛАЙН (исправлен)
 // ============================================================
 
 app.get('/api/online', async (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     try {
-        const result = await pool.query('SELECT online FROM server_status ORDER BY id DESC LIMIT 1');
-        res.json({ online: result.rows[0]?.online || 42 });
+        const result = await pool.query('SELECT online FROM server_status ORDER BY created_at DESC LIMIT 1');
+        const online = result.rows[0]?.online ?? 0;
+        console.log(`📊 Онлайн на сайте: ${online}`);
+        res.json({ online });
     } catch (err) {
-        res.json({ online: 42 });
+        console.error('Ошибка получения онлайна:', err);
+        res.json({ online: 0 });
     }
 });
 
 // ============================================================
-// 9. API — ОБНОВЛЕНИЕ ОНЛАЙНА (GET-запрос от плагина)
+// 9. API — ОБНОВЛЕНИЕ ОНЛАЙНА (от плагина)
 // ============================================================
 
 app.get('/api/online/update', async (req, res) => {
     const online = parseInt(req.query.online);
     const secret = req.query.secret;
 
-    // Проверяем секретный ключ
     if (secret !== SECRET_KEY) {
         return res.status(403).send('Неверный ключ');
     }
@@ -548,10 +551,10 @@ app.get('/api/online/update', async (req, res) => {
 
     try {
         await pool.query(
-            'INSERT INTO server_status (online) VALUES ($1)',
+            'INSERT INTO server_status (id, online, created_at) VALUES (1, $1, NOW()) ON CONFLICT (id) DO UPDATE SET online = $1, created_at = NOW()',
             [online]
         );
-        console.log(`📊 Онлайн обновлён: ${online} игроков (через GET)`);
+        console.log(`📊 Онлайн обновлён: ${online} игроков`);
         res.send(`OK: ${online}`);
     } catch (err) {
         console.error('Ошибка обновления онлайна:', err);

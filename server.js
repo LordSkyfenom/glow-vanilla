@@ -15,7 +15,7 @@ const pool = new Pool({
 });
 
 // ============================================================
-// СЕКРЕТЫ
+// СЕКРЕТЫ (ОБНОВЛЕНЫ)
 // ============================================================
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
@@ -24,8 +24,8 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const GUILD_ID = process.env.GUILD_ID;
 const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID;
 const ADMIN_ID = process.env.ADMIN_ID;
-const SECRET_KEY = process.env.SECRET_KEY || 'glowvanilla_secret_2024';
-const BANK_SECRET = process.env.BANK_SECRET || 'glowbank_secret_2024';
+const SECRET_KEY = process.env.SECRET_KEY || 'JEBWG6627JekwkavJwkq';        // ← НОВЫЙ СЕКРЕТ
+const BANK_SECRET = process.env.BANK_SECRET || 'Fjjx37GJSZ';                // ← НОВЫЙ СЕКРЕТ
 
 // ============================================================
 // СЕССИИ

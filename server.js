@@ -25,7 +25,7 @@ const GUILD_ID = process.env.GUILD_ID;
 const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID;
 const ADMIN_ID = process.env.ADMIN_ID;
 const SECRET_KEY = process.env.SECRET_KEY || 'JEBWG6627JekwkavJwkq';
-const BANK_SECRET = 'bwcwtsiskwb13';
+const BANK_SECRET = process.env.BANK_SECRET || 'bwcwtsiskwb13';
 
 // ============================================================
 // СЕССИИ
@@ -37,7 +37,11 @@ app.use(session({
     cookie: { secure: false }
 }));
 
+// ============================================================
+// МИДЛВЭР ДЛЯ ПАРСИНГА JSON И FORM
+// ============================================================
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static('.'));
 
 // ============================================================
@@ -572,7 +576,7 @@ app.get('/api/user/stats/:discordId', async (req, res) => {
         );
         const friends = parseInt(friendsRes.rows[0].count);
 
-        const balance = 0; // Заглушка, реальный баланс теперь отдельно
+        const balance = 0;
 
         res.json({ posts, cities, friends, balance });
     } catch (err) {
@@ -674,7 +678,7 @@ app.get('/api/users/:discordId', async (req, res) => {
 });
 
 // ============================================================
-// 12. API — БАНКОВСКАЯ СИСТЕМА (С ЛОГАМИ)
+// 12. API — БАНКОВСКАЯ СИСТЕМА (ПРИНИМАЕТ FORM)
 // ============================================================
 
 // 12.1 Получить баланс
@@ -699,7 +703,7 @@ app.get('/api/bank/balance/:discordId', async (req, res) => {
     }
 });
 
-// 12.2 Пополнить баланс (deposit)
+// 12.2 Пополнить баланс (deposit) — ПРИНИМАЕТ FORM
 app.post('/api/bank/deposit', async (req, res) => {
     const { discordId, username, amount, secret } = req.body;
     console.log(`📥 Запрос пополнения: discordId=${discordId}, username=${username}, amount=${amount}, secret=${secret}`);
@@ -710,7 +714,7 @@ app.post('/api/bank/deposit', async (req, res) => {
     }
 
     if (!discordId || !username || !amount || amount <= 0) {
-        console.log(`❌ Некорректные данные: discordId=${discordId}, username=${username}, amount=${amount}`);
+        console.log(`❌ Некорректные данные`);
         return res.status(400).json({ error: 'Некорректные данные' });
     }
 

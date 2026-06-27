@@ -25,7 +25,7 @@ const GUILD_ID = process.env.GUILD_ID;
 const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID;
 const ADMIN_ID = process.env.ADMIN_ID;
 const SECRET_KEY = process.env.SECRET_KEY || 'JEBWG6627JekwkavJwkq';
-const BANK_SECRET = process.env.BANK_SECRET || 'bwcwtsiskwb13';
+const BANK_SECRET = 'bwcwtsiskwb13';
 
 // ============================================================
 // СЕССИИ

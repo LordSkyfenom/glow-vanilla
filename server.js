@@ -38,7 +38,7 @@ app.use(session({
 }));
 
 // ============================================================
-// МИДЛВЭР ДЛЯ ПАРСИНГА JSON И FORM
+// МИДЛВЭРЫ
 // ============================================================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -678,14 +678,14 @@ app.get('/api/users/:discordId', async (req, res) => {
 });
 
 // ============================================================
-// 12. API — БАНКОВСКАЯ СИСТЕМА (ПРИНИМАЕТ FORM)
+// 12. API — БАНКОВСКАЯ СИСТЕМА (GET-версия)
 // ============================================================
 
-// 12.1 Получить баланс
+// 12.1 Получить баланс (GET)
 app.get('/api/bank/balance/:discordId', async (req, res) => {
     const { discordId } = req.params;
     const { secret } = req.query;
-    console.log(`📥 Запрос баланса: discordId=${discordId}, secret=${secret}`);
+    console.log(`📥 GET balance: discordId=${discordId}, secret=${secret}`);
 
     if (secret !== BANK_SECRET) {
         console.log(`❌ Неверный секрет: ${secret}`);
@@ -703,19 +703,22 @@ app.get('/api/bank/balance/:discordId', async (req, res) => {
     }
 });
 
-// 12.2 Пополнить баланс (deposit) — ПРИНИМАЕТ FORM
-app.post('/api/bank/deposit', async (req, res) => {
-    const { discordId, username, amount, secret } = req.body;
-    console.log(`📥 Запрос пополнения: discordId=${discordId}, username=${username}, amount=${amount}, secret=${secret}`);
+// 12.2 Пополнить баланс (GET-запрос, как онлайн)
+app.get('/api/bank/deposit', async (req, res) => {
+    const discordId = req.query.discordId;
+    const username = req.query.username;
+    const amount = parseInt(req.query.amount);
+    const secret = req.query.secret;
+
+    console.log(`📥 GET deposit: discordId=${discordId}, username=${username}, amount=${amount}, secret=${secret}`);
 
     if (secret !== BANK_SECRET) {
         console.log(`❌ Неверный секрет: ${secret}`);
-        return res.status(403).json({ error: 'Неверный ключ' });
+        return res.status(403).send('Неверный ключ');
     }
 
     if (!discordId || !username || !amount || amount <= 0) {
-        console.log(`❌ Некорректные данные`);
-        return res.status(400).json({ error: 'Некорректные данные' });
+        return res.status(400).send('Некорректные данные');
     }
 
     try {
@@ -733,25 +736,29 @@ app.post('/api/bank/deposit', async (req, res) => {
         );
 
         console.log(`✅ Пополнение успешно: ${username} +${amount} АР`);
-        res.json({ success: true });
+        res.send('OK');
     } catch (err) {
         console.error('❌ Ошибка пополнения:', err);
-        res.status(500).json({ error: 'Ошибка БД: ' + err.message });
+        res.status(500).send('Ошибка БД');
     }
 });
 
-// 12.3 Снять с баланса (withdraw)
-app.post('/api/bank/withdraw', async (req, res) => {
-    const { discordId, username, amount, secret } = req.body;
-    console.log(`📥 Запрос снятия: discordId=${discordId}, username=${username}, amount=${amount}`);
+// 12.3 Снять с баланса (GET)
+app.get('/api/bank/withdraw', async (req, res) => {
+    const discordId = req.query.discordId;
+    const username = req.query.username;
+    const amount = parseInt(req.query.amount);
+    const secret = req.query.secret;
+
+    console.log(`📥 GET withdraw: discordId=${discordId}, username=${username}, amount=${amount}`);
 
     if (secret !== BANK_SECRET) {
         console.log(`❌ Неверный секрет: ${secret}`);
-        return res.status(403).json({ error: 'Неверный ключ' });
+        return res.status(403).send('Неверный ключ');
     }
 
     if (!discordId || !amount || amount <= 0) {
-        return res.status(400).json({ error: 'Некорректные данные' });
+        return res.status(400).send('Некорректные данные');
     }
 
     try {
@@ -760,7 +767,7 @@ app.post('/api/bank/withdraw', async (req, res) => {
 
         if (currentBalance < amount) {
             console.log(`❌ Недостаточно средств: ${currentBalance} < ${amount}`);
-            return res.status(400).json({ error: 'Недостаточно средств' });
+            return res.status(400).send('Недостаточно средств');
         }
 
         await pool.query(
@@ -774,29 +781,33 @@ app.post('/api/bank/withdraw', async (req, res) => {
         );
 
         console.log(`✅ Снятие успешно: ${username} -${amount} АР`);
-        res.json({ success: true });
+        res.send('OK');
     } catch (err) {
         console.error('❌ Ошибка снятия:', err);
-        res.status(500).json({ error: 'Ошибка БД' });
+        res.status(500).send('Ошибка БД');
     }
 });
 
-// 12.4 Перевод (transfer)
-app.post('/api/bank/transfer', async (req, res) => {
-    const { fromId, toId, amount, secret } = req.body;
-    console.log(`📥 Запрос перевода: from=${fromId}, to=${toId}, amount=${amount}`);
+// 12.4 Перевод (GET)
+app.get('/api/bank/transfer', async (req, res) => {
+    const fromId = req.query.fromId;
+    const toId = req.query.toId;
+    const amount = parseInt(req.query.amount);
+    const secret = req.query.secret;
+
+    console.log(`📥 GET transfer: from=${fromId}, to=${toId}, amount=${amount}`);
 
     if (secret !== BANK_SECRET) {
         console.log(`❌ Неверный секрет: ${secret}`);
-        return res.status(403).json({ error: 'Неверный ключ' });
+        return res.status(403).send('Неверный ключ');
     }
 
     if (!fromId || !toId || !amount || amount <= 0) {
-        return res.status(400).json({ error: 'Некорректные данные' });
+        return res.status(400).send('Некорректные данные');
     }
 
     if (fromId === toId) {
-        return res.status(400).json({ error: 'Нельзя перевести самому себе' });
+        return res.status(400).send('Нельзя перевести самому себе');
     }
 
     try {
@@ -805,7 +816,7 @@ app.post('/api/bank/transfer', async (req, res) => {
 
         if (fromBalance < amount) {
             console.log(`❌ Недостаточно средств у отправителя: ${fromBalance} < ${amount}`);
-            return res.status(400).json({ error: 'Недостаточно средств' });
+            return res.status(400).send('Недостаточно средств');
         }
 
         await pool.query('UPDATE bank_accounts SET balance = balance - $1 WHERE discord_id = $2', [amount, fromId]);
@@ -828,14 +839,14 @@ app.post('/api/bank/transfer', async (req, res) => {
         );
 
         console.log(`✅ Перевод успешен: ${fromId} -> ${toId} ${amount} АР`);
-        res.json({ success: true });
+        res.send('OK');
     } catch (err) {
         console.error('❌ Ошибка перевода:', err);
-        res.status(500).json({ error: 'Ошибка БД' });
+        res.status(500).send('Ошибка БД');
     }
 });
 
-// 12.5 Получить историю транзакций
+// 12.5 Получить историю транзакций (GET)
 app.get('/api/bank/history/:discordId', async (req, res) => {
     const { discordId } = req.params;
     const { secret, limit = 20 } = req.query;
@@ -856,7 +867,7 @@ app.get('/api/bank/history/:discordId', async (req, res) => {
     }
 });
 
-// 12.6 Топ игроков по балансу
+// 12.6 Топ игроков по балансу (GET)
 app.get('/api/bank/top', async (req, res) => {
     const { secret, limit = 10 } = req.query;
 

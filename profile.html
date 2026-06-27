@@ -109,6 +109,10 @@
             font-weight: 700;
             color: var(--gold);
         }
+        .bank-card__balance.loading {
+            color: var(--gray);
+            font-weight: 400;
+        }
         .profile-actions {
             display: flex;
             gap: 12px;
@@ -235,10 +239,14 @@
     </footer>
 
     <script>
+        // ============================================================
+        // ЗАГРУЗКА ПРОФИЛЯ
+        // ============================================================
         async function loadProfile() {
             const container = document.getElementById('profileContent');
 
             try {
+                // 1. Получаем пользователя
                 const meRes = await fetch('/api/me');
                 if (!meRes.ok) {
                     container.innerHTML = `
@@ -254,18 +262,34 @@
 
                 const user = await meRes.json();
 
+                // 2. Получаем статистику (посты, города, друзья)
                 const statsRes = await fetch(`/api/user/stats/${user.id}`);
-                const stats = statsRes.ok ? await statsRes.json() : { posts: 0, cities: 0, friends: 0, balance: 0 };
+                const stats = statsRes.ok ? await statsRes.json() : { posts: 0, cities: 0, friends: 0 };
 
+                // 3. Получаем РЕАЛЬНЫЙ БАЛАНС из банковской системы
+                let balance = 0;
+                try {
+                    const bankRes = await fetch(`/api/bank/balance/${user.id}?secret=Fjjx37GJSZ`);
+                    if (bankRes.ok) {
+                        const bankData = await bankRes.json();
+                        balance = bankData.balance || 0;
+                    }
+                } catch (e) {
+                    console.warn('Не удалось загрузить баланс:', e);
+                }
+
+                // 4. Обновляем аватар в хедере
                 const avatarUrl = user.avatar
                     ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
                     : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.id) % 5}.png`;
                 document.getElementById('headerAvatar').src = avatarUrl;
 
+                // 5. Роль
                 const isAdmin = user.isAdmin || false;
                 const roleClass = isAdmin ? 'admin' : 'user';
                 const roleText = isAdmin ? '👑 Администратор' : '🎮 Игрок';
 
+                // 6. Рендерим профиль
                 container.innerHTML = `
                     <div class="profile-card">
                         <img class="profile-card__avatar" src="${avatarUrl}" alt="Аватар" />
@@ -288,6 +312,7 @@
                             </div>
                         </div>
 
+                        <!-- ===== БАНКОВСКАЯ КАРТА С РЕАЛЬНЫМ БАЛАНСОМ ===== -->
                         <div class="bank-card">
                             <div class="bank-card__top">
                                 <span class="bank-card__label">💳 Банковская карта</span>
@@ -296,7 +321,7 @@
                             <div class="bank-card__number">•••• •••• •••• ${user.id.slice(-4)}</div>
                             <div class="bank-card__bottom">
                                 <span class="bank-card__name">${user.username}</span>
-                                <span class="bank-card__balance">${stats.balance || 0} АР</span>
+                                <span class="bank-card__balance" id="bankBalance">${balance} АР</span>
                             </div>
                         </div>
 
@@ -319,11 +344,9 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', loadProfile);
-    </script>
-
-    <script>
-        // Подтягиваем аватар из Discord в хедер
+        // ============================================================
+        // АВАТАР В ХЕДЕРЕ (дополнительно)
+        // ============================================================
         async function updateHeaderAvatar() {
             try {
                 const res = await fetch('/api/me');
@@ -342,7 +365,13 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', updateHeaderAvatar);
+        // ============================================================
+        // ЗАПУСК
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProfile();
+            updateHeaderAvatar();
+        });
     </script>
 
 </body>

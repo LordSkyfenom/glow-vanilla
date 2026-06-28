@@ -271,29 +271,31 @@
                 const statsRes = await fetch(`/api/user/stats/${user.id}`);
                 const stats = statsRes.ok ? await statsRes.json() : { posts: 0, cities: 0, friends: 0 };
 
-                // 3. Получаем РЕАЛЬНЫЙ БАЛАНС из банковской системы
+                // 3. Получаем РЕАЛЬНЫЙ БАЛАНС из банковской системы (по UUID)
                 let balance = 0;
                 try {
-                    // Сначала пробуем по Discord ID
-                    let bankRes = await fetch(`/api/bank/balance/${user.id}?secret=${SECRET_KEY}`);
-                    let bankData = bankRes.ok ? await bankRes.json() : null;
-                    
-                    // Если не нашлось — пробуем по UUID (если он есть в таблице users)
-                    if (!bankData || bankData.balance === undefined) {
-                        const userRes = await fetch(`/api/users/${user.id}`);
-                        if (userRes.ok) {
-                            const userData = await userRes.json();
-                            if (userData.minecraft_uuid) {
-                                bankRes = await fetch(`/api/bank/balance/${userData.minecraft_uuid}?secret=${SECRET_KEY}`);
-                                if (bankRes.ok) {
-                                    bankData = await bankRes.json();
-                                }
-                            }
-                        }
+                    // Получаем UUID пользователя из таблицы users
+                    const userRes = await fetch(`/api/users/${user.id}`);
+                    let uuid = null;
+                    if (userRes.ok) {
+                        const userData = await userRes.json();
+                        uuid = userData.minecraft_uuid;
                     }
                     
-                    if (bankData && bankData.balance !== undefined) {
-                        balance = bankData.balance || 0;
+                    // Если UUID есть — ищем баланс по нему
+                    if (uuid) {
+                        const bankRes = await fetch(`/api/bank/balance/${uuid}?secret=${SECRET_KEY}`);
+                        if (bankRes.ok) {
+                            const bankData = await bankRes.json();
+                            balance = bankData.balance || 0;
+                        }
+                    } else {
+                        // Если UUID нет — пробуем по Discord ID (как запасной вариант)
+                        const bankRes = await fetch(`/api/bank/balance/${user.id}?secret=${SECRET_KEY}`);
+                        if (bankRes.ok) {
+                            const bankData = await bankRes.json();
+                            balance = bankData.balance || 0;
+                        }
                     }
                 } catch (e) {
                     console.warn('Не удалось загрузить баланс:', e);

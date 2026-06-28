@@ -15,7 +15,7 @@ const pool = new Pool({
 });
 
 // ============================================================
-// СЕКРЕТЫ
+// СЕКРЕТЫ — ОДИН ДЛЯ ВСЕГО
 // ============================================================
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
@@ -24,7 +24,7 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const GUILD_ID = process.env.GUILD_ID;
 const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID;
 const ADMIN_ID = process.env.ADMIN_ID;
-const SECRET_KEY = process.env.SECRET_KEY || 'JEBWG6627JekwkavJwkq';
+const SECRET_KEY = process.env.SECRET_KEY || 'JEBWG6627JekwkavJwkq'; // ← ЕДИНСТВЕННЫЙ СЕКРЕТ
 
 // ============================================================
 // СЕССИИ
@@ -677,16 +677,16 @@ app.get('/api/users/:discordId', async (req, res) => {
 });
 
 // ============================================================
-// 12. API — БАНКОВСКАЯ СИСТЕМА (GET-версия)
+// 12. API — БАНКОВСКАЯ СИСТЕМА (ОДИН СЕКРЕТ — SECRET_KEY)
 // ============================================================
 
-// 12.1 Получить баланс (GET)
+// 12.1 Получить баланс
 app.get('/api/bank/balance/:discordId', async (req, res) => {
     const { discordId } = req.params;
     const { secret } = req.query;
     console.log(`📥 GET balance: discordId=${discordId}, secret=${secret}`);
 
-    if (secret !== BANK_SECRET) {
+    if (secret !== SECRET_KEY) {
         console.log(`❌ Неверный секрет: ${secret}`);
         return res.status(403).json({ error: 'Неверный ключ' });
     }
@@ -702,7 +702,7 @@ app.get('/api/bank/balance/:discordId', async (req, res) => {
     }
 });
 
-// 12.2 Пополнить баланс (GET-запрос, как онлайн)
+// 12.2 Пополнить баланс (GET)
 app.get('/api/bank/deposit', async (req, res) => {
     const discordId = req.query.discordId;
     const username = req.query.username;
@@ -711,7 +711,7 @@ app.get('/api/bank/deposit', async (req, res) => {
 
     console.log(`📥 GET deposit: discordId=${discordId}, username=${username}, amount=${amount}, secret=${secret}`);
 
-    if (secret !== BANK_SECRET) {
+    if (secret !== SECRET_KEY) {
         console.log(`❌ Неверный секрет: ${secret}`);
         return res.status(403).send('Неверный ключ');
     }
@@ -751,7 +751,7 @@ app.get('/api/bank/withdraw', async (req, res) => {
 
     console.log(`📥 GET withdraw: discordId=${discordId}, username=${username}, amount=${amount}`);
 
-    if (secret !== BANK_SECRET) {
+    if (secret !== SECRET_KEY) {
         console.log(`❌ Неверный секрет: ${secret}`);
         return res.status(403).send('Неверный ключ');
     }
@@ -796,7 +796,7 @@ app.get('/api/bank/transfer', async (req, res) => {
 
     console.log(`📥 GET transfer: from=${fromId}, to=${toId}, amount=${amount}`);
 
-    if (secret !== BANK_SECRET) {
+    if (secret !== SECRET_KEY) {
         console.log(`❌ Неверный секрет: ${secret}`);
         return res.status(403).send('Неверный ключ');
     }
@@ -845,12 +845,12 @@ app.get('/api/bank/transfer', async (req, res) => {
     }
 });
 
-// 12.5 Получить историю транзакций (GET)
+// 12.5 Получить историю транзакций
 app.get('/api/bank/history/:discordId', async (req, res) => {
     const { discordId } = req.params;
     const { secret, limit = 20 } = req.query;
 
-    if (secret !== BANK_SECRET) {
+    if (secret !== SECRET_KEY) {
         return res.status(403).json({ error: 'Неверный ключ' });
     }
 
@@ -866,11 +866,11 @@ app.get('/api/bank/history/:discordId', async (req, res) => {
     }
 });
 
-// 12.6 Топ игроков по балансу (GET)
+// 12.6 Топ игроков по балансу
 app.get('/api/bank/top', async (req, res) => {
     const { secret, limit = 10 } = req.query;
 
-    if (secret !== BANK_SECRET) {
+    if (secret !== SECRET_KEY) {
         return res.status(403).json({ error: 'Неверный ключ' });
     }
 
@@ -895,5 +895,4 @@ app.listen(PORT, () => {
     console.log(`👑 Роль админа ID: ${ADMIN_ROLE_ID}`);
     console.log(`📊 База данных: ${process.env.DATABASE_URL ? '✅ Подключена' : '❌ НЕ ПОДКЛЮЧЕНА'}`);
     console.log(`🔑 Секретный ключ: ${SECRET_KEY ? '✅ Установлен' : '❌ НЕ УСТАНОВЛЕН'}`);
-    console.log(`🏦 Банковский ключ: ${BANK_SECRET ? '✅ Установлен' : '❌ НЕ УСТАНОВЛЕН'}`);
 });

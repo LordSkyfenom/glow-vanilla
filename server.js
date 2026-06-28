@@ -15,7 +15,7 @@ const pool = new Pool({
 });
 
 // ============================================================
-// СЕКРЕТЫ — ОДИН ДЛЯ ВСЕГО
+// СЕКРЕТЫ
 // ============================================================
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
@@ -36,15 +36,12 @@ app.use(session({
     cookie: { secure: false }
 }));
 
-// ============================================================
-// МИДЛВЭРЫ
-// ============================================================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('.'));
 
 // ============================================================
-// 1. АВТОРИЗАЦИЯ ЧЕРЕЗ DISCORD
+// АВТОРИЗАЦИЯ ЧЕРЕЗ DISCORD
 // ============================================================
 
 app.get('/api/me', (req, res) => {
@@ -125,7 +122,7 @@ app.get('/auth/logout', (req, res) => {
 });
 
 // ============================================================
-// 2. MIDDLEWARE
+// MIDDLEWARE
 // ============================================================
 
 function isAuth(req, res, next) {
@@ -139,7 +136,7 @@ function isAdmin(req, res, next) {
 }
 
 // ============================================================
-// 3. API — ПОСТЫ И НОВОСТИ
+// ПОСТЫ И НОВОСТИ
 // ============================================================
 
 app.get('/api/posts', async (req, res) => {
@@ -202,7 +199,7 @@ app.delete('/api/news/:id', isAdmin, async (req, res) => {
 });
 
 // ============================================================
-// 4. API — ГОРОДА
+// ГОРОДА
 // ============================================================
 
 app.get('/api/cities', async (req, res) => {
@@ -304,9 +301,6 @@ app.post('/api/cities/:id/accept', isAuth, async (req, res) => {
     }
 });
 
-// ============================================================
-// ПОКИНУТЬ ГОРОД
-// ============================================================
 app.post('/api/cities/:id/leave', isAuth, async (req, res) => {
     const cityId = parseInt(req.params.id);
     const userId = req.session.user.id;
@@ -337,7 +331,7 @@ app.post('/api/cities/:id/leave', isAuth, async (req, res) => {
 });
 
 // ============================================================
-// 5. API — ДРУЗЬЯ
+// ДРУЗЬЯ
 // ============================================================
 
 app.get('/api/friends', isAuth, async (req, res) => {
@@ -412,10 +406,6 @@ app.delete('/api/friends/:friendId', isAuth, async (req, res) => {
     }
 });
 
-// ============================================================
-// 5.1 API — СТАТУС ДРУЗЕЙ
-// ============================================================
-
 app.get('/api/friends/status', isAuth, async (req, res) => {
     const userId = req.session.user.id;
 
@@ -450,7 +440,7 @@ app.get('/api/friends/status', isAuth, async (req, res) => {
 });
 
 // ============================================================
-// 6. API — ЧАТЫ
+// ЧАТЫ
 // ============================================================
 
 app.get('/api/messages/:chatId', isAuth, async (req, res) => {
@@ -522,10 +512,6 @@ app.post('/api/messages', isAuth, async (req, res) => {
     }
 });
 
-// ============================================================
-// 6.1 API — УДАЛИТЬ СООБЩЕНИЕ
-// ============================================================
-
 app.delete('/api/messages/:messageId', isAuth, async (req, res) => {
     const messageId = parseInt(req.params.messageId);
     const userId = req.session.user.id;
@@ -550,7 +536,7 @@ app.delete('/api/messages/:messageId', isAuth, async (req, res) => {
 });
 
 // ============================================================
-// 7. API — СТАТИСТИКА ПРОФИЛЯ
+// СТАТИСТИКА ПРОФИЛЯ
 // ============================================================
 
 app.get('/api/user/stats/:discordId', async (req, res) => {
@@ -575,9 +561,7 @@ app.get('/api/user/stats/:discordId', async (req, res) => {
         );
         const friends = parseInt(friendsRes.rows[0].count);
 
-        const balance = 0;
-
-        res.json({ posts, cities, friends, balance });
+        res.json({ posts, cities, friends, balance: 0 });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Ошибка получения статистики' });
@@ -585,7 +569,7 @@ app.get('/api/user/stats/:discordId', async (req, res) => {
 });
 
 // ============================================================
-// 8. API — ОНЛАЙН
+// ОНЛАЙН
 // ============================================================
 
 app.get('/api/online', async (req, res) => {
@@ -600,10 +584,6 @@ app.get('/api/online', async (req, res) => {
         res.json({ online: 0 });
     }
 });
-
-// ============================================================
-// 9. API — ОБНОВЛЕНИЕ ОНЛАЙНА (ОТ ПЛАГИНА)
-// ============================================================
 
 app.get('/api/online/update', async (req, res) => {
     const online = parseInt(req.query.online);
@@ -632,7 +612,7 @@ app.get('/api/online/update', async (req, res) => {
 });
 
 // ============================================================
-// 10. API — ПОИСК ПОЛЬЗОВАТЕЛЕЙ
+// ПОИСК ПОЛЬЗОВАТЕЛЕЙ
 // ============================================================
 
 app.get('/api/users/search', isAuth, async (req, res) => {
@@ -655,16 +635,12 @@ app.get('/api/users/search', isAuth, async (req, res) => {
     }
 });
 
-// ============================================================
-// 11. API — ПОЛЬЗОВАТЕЛЬ ПО ID
-// ============================================================
-
 app.get('/api/users/:discordId', async (req, res) => {
     const discordId = req.params.discordId;
 
     try {
         const result = await pool.query(
-            'SELECT discord_id, username, avatar FROM users WHERE discord_id = $1',
+            'SELECT discord_id, username, avatar, minecraft_uuid FROM users WHERE discord_id = $1',
             [discordId]
         );
         if (result.rows.length === 0) {
@@ -677,10 +653,10 @@ app.get('/api/users/:discordId', async (req, res) => {
 });
 
 // ============================================================
-// 12. API — БАНКОВСКАЯ СИСТЕМА
+// БАНКОВСКАЯ СИСТЕМА
 // ============================================================
 
-// 12.1 Получить баланс (с поддержкой UUID и Discord ID)
+// 12.1 Получить баланс
 app.get('/api/bank/balance/:discordId', async (req, res) => {
     const { discordId } = req.params;
     const { secret } = req.query;
@@ -692,14 +668,12 @@ app.get('/api/bank/balance/:discordId', async (req, res) => {
     }
 
     try {
-        // 1. Сначала ищем по discord_id
         let result = await pool.query(
             'SELECT balance FROM bank_accounts WHERE discord_id = $1',
             [discordId]
         );
         let balance = result.rows[0]?.balance || 0;
 
-        // 2. Если не нашли — ищем по minecraft_uuid
         if (balance === 0) {
             const uuidResult = await pool.query(
                 'SELECT minecraft_uuid FROM users WHERE discord_id = $1',
@@ -723,17 +697,16 @@ app.get('/api/bank/balance/:discordId', async (req, res) => {
     }
 });
 
-// 12.2 Пополнить баланс (GET)
+// 12.2 Пополнить баланс
 app.get('/api/bank/deposit', async (req, res) => {
     const discordId = req.query.discordId;
     const username = req.query.username;
     const amount = parseInt(req.query.amount);
     const secret = req.query.secret;
 
-    console.log(`📥 GET deposit: discordId=${discordId}, username=${username}, amount=${amount}, secret=${secret}`);
+    console.log(`📥 GET deposit: discordId=${discordId}, username=${username}, amount=${amount}`);
 
     if (secret !== SECRET_KEY) {
-        console.log(`❌ Неверный секрет: ${secret}`);
         return res.status(403).send('Неверный ключ');
     }
 
@@ -763,7 +736,7 @@ app.get('/api/bank/deposit', async (req, res) => {
     }
 });
 
-// 12.3 Снять с баланса (GET)
+// 12.3 Снять с баланса
 app.get('/api/bank/withdraw', async (req, res) => {
     const discordId = req.query.discordId;
     const username = req.query.username;
@@ -773,7 +746,6 @@ app.get('/api/bank/withdraw', async (req, res) => {
     console.log(`📥 GET withdraw: discordId=${discordId}, username=${username}, amount=${amount}`);
 
     if (secret !== SECRET_KEY) {
-        console.log(`❌ Неверный секрет: ${secret}`);
         return res.status(403).send('Неверный ключ');
     }
 
@@ -786,7 +758,6 @@ app.get('/api/bank/withdraw', async (req, res) => {
         const currentBalance = result.rows[0]?.balance || 0;
 
         if (currentBalance < amount) {
-            console.log(`❌ Недостаточно средств: ${currentBalance} < ${amount}`);
             return res.status(400).send('Недостаточно средств');
         }
 
@@ -808,7 +779,7 @@ app.get('/api/bank/withdraw', async (req, res) => {
     }
 });
 
-// 12.4 Перевод (GET)
+// 12.4 Перевод
 app.get('/api/bank/transfer', async (req, res) => {
     const fromId = req.query.fromId;
     const toId = req.query.toId;
@@ -818,7 +789,6 @@ app.get('/api/bank/transfer', async (req, res) => {
     console.log(`📥 GET transfer: from=${fromId}, to=${toId}, amount=${amount}`);
 
     if (secret !== SECRET_KEY) {
-        console.log(`❌ Неверный секрет: ${secret}`);
         return res.status(403).send('Неверный ключ');
     }
 
@@ -835,7 +805,6 @@ app.get('/api/bank/transfer', async (req, res) => {
         const fromBalance = fromResult.rows[0]?.balance || 0;
 
         if (fromBalance < amount) {
-            console.log(`❌ Недостаточно средств у отправителя: ${fromBalance} < ${amount}`);
             return res.status(400).send('Недостаточно средств');
         }
 
@@ -866,7 +835,7 @@ app.get('/api/bank/transfer', async (req, res) => {
     }
 });
 
-// 12.5 Получить историю транзакций
+// 12.5 История транзакций
 app.get('/api/bank/history/:discordId', async (req, res) => {
     const { discordId } = req.params;
     const { secret, limit = 20 } = req.query;
@@ -887,7 +856,7 @@ app.get('/api/bank/history/:discordId', async (req, res) => {
     }
 });
 
-// 12.6 Топ игроков по балансу
+// 12.6 Топ игроков
 app.get('/api/bank/top', async (req, res) => {
     const { secret, limit = 10 } = req.query;
 
@@ -908,7 +877,7 @@ app.get('/api/bank/top', async (req, res) => {
 });
 
 // ============================================================
-// 13. API — ПРИВЯЗКА МАЙНКРАФТ UUID К DISCORD ID
+// ПРИВЯЗКА МАЙНКРАФТ UUID К DISCORD ID (с защитой)
 // ============================================================
 app.get('/api/user/link', async (req, res) => {
     const discordId = req.query.discordId;
@@ -928,11 +897,35 @@ app.get('/api/user/link', async (req, res) => {
     }
 
     try {
-        await pool.query(
-            'UPDATE users SET minecraft_uuid = $1 WHERE discord_id = $2',
+        // 1. Проверяем, не привязан ли уже этот UUID к другому Discord ID
+        const existingLink = await pool.query(
+            'SELECT discord_id FROM users WHERE minecraft_uuid = $1 AND discord_id != $2',
             [uuid, discordId]
         );
 
+        if (existingLink.rows.length > 0) {
+            console.log(`❌ UUID ${uuid} уже привязан к другому Discord ID: ${existingLink.rows[0].discord_id}`);
+            return res.status(400).json({ 
+                error: 'Этот Minecraft аккаунт уже привязан к другому Discord ID!',
+                code: 'UUID_ALREADY_LINKED'
+            });
+        }
+
+        // 2. Проверяем, не привязан ли уже этот Discord ID к другому UUID
+        const existingDiscord = await pool.query(
+            'SELECT minecraft_uuid FROM users WHERE discord_id = $1 AND minecraft_uuid != $2 AND minecraft_uuid IS NOT NULL',
+            [discordId, uuid]
+        );
+
+        if (existingDiscord.rows.length > 0) {
+            console.log(`❌ Discord ID ${discordId} уже привязан к другому UUID: ${existingDiscord.rows[0].minecraft_uuid}`);
+            return res.status(400).json({ 
+                error: 'Этот Discord ID уже привязан к другому Minecraft аккаунту!',
+                code: 'DISCORD_ALREADY_LINKED'
+            });
+        }
+
+        // 3. Всё чисто — обновляем или вставляем
         await pool.query(
             'INSERT INTO users (discord_id, username, minecraft_uuid) VALUES ($1, $2, $3) ON CONFLICT (discord_id) DO UPDATE SET username = $2, minecraft_uuid = $3',
             [discordId, username, uuid]

@@ -24,7 +24,7 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const GUILD_ID = process.env.GUILD_ID;
 const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID;
 const ADMIN_ID = process.env.ADMIN_ID;
-const SECRET_KEY = process.env.SECRET_KEY || 'JEBWG6627JekwkavJwkq'; // ← ЕДИНСТВЕННЫЙ СЕКРЕТ
+const SECRET_KEY = process.env.SECRET_KEY || 'JEBWG6627JekwkavJwkq';
 
 // ============================================================
 // СЕССИИ
@@ -36,9 +36,6 @@ app.use(session({
     cookie: { secure: false }
 }));
 
-// ============================================================
-// МИДЛВЭРЫ
-// ============================================================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('.'));
@@ -677,10 +674,10 @@ app.get('/api/users/:discordId', async (req, res) => {
 });
 
 // ============================================================
-// 12. API — БАНКОВСКАЯ СИСТЕМА (ОДИН СЕКРЕТ — SECRET_KEY)
+// 12. API — БАНКОВСКАЯ СИСТЕМА
 // ============================================================
 
-// 12.1 Получить баланс
+// 12.1 Получить баланс (с поддержкой UUID)
 app.get('/api/bank/balance/:discordId', async (req, res) => {
     const { discordId } = req.params;
     const { secret } = req.query;
@@ -692,7 +689,13 @@ app.get('/api/bank/balance/:discordId', async (req, res) => {
     }
 
     try {
-        const result = await pool.query('SELECT balance FROM bank_accounts WHERE discord_id = $1', [discordId]);
+        // Ищем баланс по discord_id ИЛИ по minecraft_uuid
+        const result = await pool.query(
+            `SELECT balance FROM bank_accounts 
+             WHERE discord_id = $1 
+             OR discord_id IN (SELECT discord_id FROM users WHERE minecraft_uuid = $1)`,
+            [discordId]
+        );
         const balance = result.rows[0]?.balance || 0;
         console.log(`✅ Баланс для ${discordId}: ${balance}`);
         res.json({ discordId, balance });
@@ -882,6 +885,45 @@ app.get('/api/bank/top', async (req, res) => {
         res.json(result.rows);
     } catch (err) {
         console.error('Ошибка получения топа:', err);
+        res.status(500).json({ error: 'Ошибка БД' });
+    }
+});
+
+// ============================================================
+// 13. API — ПРИВЯЗКА МАЙНКРАФТ UUID К DISCORD ID
+// ============================================================
+app.get('/api/user/link', async (req, res) => {
+    const discordId = req.query.discordId;
+    const uuid = req.query.uuid;
+    const username = req.query.username;
+    const secret = req.query.secret;
+
+    console.log(`📥 LINK: discordId=${discordId}, uuid=${uuid}, username=${username}`);
+
+    if (secret !== SECRET_KEY) {
+        console.log(`❌ Неверный секрет: ${secret}`);
+        return res.status(403).json({ error: 'Неверный ключ' });
+    }
+
+    if (!discordId || !uuid) {
+        return res.status(400).json({ error: 'Некорректные данные' });
+    }
+
+    try {
+        await pool.query(
+            'UPDATE users SET minecraft_uuid = $1 WHERE discord_id = $2',
+            [uuid, discordId]
+        );
+
+        await pool.query(
+            'INSERT INTO users (discord_id, username, minecraft_uuid) VALUES ($1, $2, $3) ON CONFLICT (discord_id) DO UPDATE SET username = $2, minecraft_uuid = $3',
+            [discordId, username, uuid]
+        );
+
+        console.log(`✅ Аккаунт привязан: ${uuid} -> ${discordId}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('❌ Ошибка привязки:', err);
         res.status(500).json({ error: 'Ошибка БД' });
     }
 });

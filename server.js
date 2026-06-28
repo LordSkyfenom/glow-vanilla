@@ -612,7 +612,7 @@ app.get('/api/online/update', async (req, res) => {
 });
 
 // ============================================================
-// ПОИСК ПОЛЬЗОВАТЕЛЕЙ
+// ПОИСК ПОЛЬЗОВАТЕЛЕЙ (по Minecraft нику и Discord нику)
 // ============================================================
 
 app.get('/api/users/search', isAuth, async (req, res) => {
@@ -623,24 +623,29 @@ app.get('/api/users/search', isAuth, async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT discord_id, username, avatar 
+            `SELECT discord_id, username, avatar, minecraft_username 
              FROM users 
-             WHERE username ILIKE $1 
+             WHERE minecraft_username ILIKE $1 OR username ILIKE $1
              LIMIT 10`,
             [`%${query}%`]
         );
         res.json(result.rows);
     } catch (err) {
+        console.error('Ошибка поиска:', err);
         res.status(500).json({ error: 'Ошибка поиска' });
     }
 });
+
+// ============================================================
+// ПОЛЬЗОВАТЕЛЬ ПО ID
+// ============================================================
 
 app.get('/api/users/:discordId', async (req, res) => {
     const discordId = req.params.discordId;
 
     try {
         const result = await pool.query(
-            'SELECT discord_id, username, avatar, minecraft_uuid FROM users WHERE discord_id = $1',
+            'SELECT discord_id, username, avatar, minecraft_uuid, minecraft_username FROM users WHERE discord_id = $1',
             [discordId]
         );
         if (result.rows.length === 0) {
@@ -648,6 +653,7 @@ app.get('/api/users/:discordId', async (req, res) => {
         }
         res.json(result.rows[0]);
     } catch (err) {
+        console.error('Ошибка получения пользователя:', err);
         res.status(500).json({ error: 'Ошибка получения пользователя' });
     }
 });
@@ -656,7 +662,6 @@ app.get('/api/users/:discordId', async (req, res) => {
 // БАНКОВСКАЯ СИСТЕМА
 // ============================================================
 
-// 12.1 Получить баланс
 app.get('/api/bank/balance/:discordId', async (req, res) => {
     const { discordId } = req.params;
     const { secret } = req.query;
@@ -697,7 +702,6 @@ app.get('/api/bank/balance/:discordId', async (req, res) => {
     }
 });
 
-// 12.2 Пополнить баланс
 app.get('/api/bank/deposit', async (req, res) => {
     const discordId = req.query.discordId;
     const username = req.query.username;
@@ -736,7 +740,6 @@ app.get('/api/bank/deposit', async (req, res) => {
     }
 });
 
-// 12.3 Снять с баланса
 app.get('/api/bank/withdraw', async (req, res) => {
     const discordId = req.query.discordId;
     const username = req.query.username;
@@ -779,7 +782,6 @@ app.get('/api/bank/withdraw', async (req, res) => {
     }
 });
 
-// 12.4 Перевод
 app.get('/api/bank/transfer', async (req, res) => {
     const fromId = req.query.fromId;
     const toId = req.query.toId;
@@ -835,7 +837,6 @@ app.get('/api/bank/transfer', async (req, res) => {
     }
 });
 
-// 12.5 История транзакций
 app.get('/api/bank/history/:discordId', async (req, res) => {
     const { discordId } = req.params;
     const { secret, limit = 20 } = req.query;
@@ -856,7 +857,6 @@ app.get('/api/bank/history/:discordId', async (req, res) => {
     }
 });
 
-// 12.6 Топ игроков
 app.get('/api/bank/top', async (req, res) => {
     const { secret, limit = 10 } = req.query;
 
@@ -877,12 +877,12 @@ app.get('/api/bank/top', async (req, res) => {
 });
 
 // ============================================================
-// ПРИВЯЗКА МАЙНКРАФТ UUID К DISCORD ID (с защитой)
+// ПРИВЯЗКА МАЙНКРАФТ UUID К DISCORD ID (с сохранением Minecraft ника)
 // ============================================================
 app.get('/api/user/link', async (req, res) => {
     const discordId = req.query.discordId;
     const uuid = req.query.uuid;
-    const username = req.query.username;
+    const username = req.query.username; // Minecraft ник
     const secret = req.query.secret;
 
     console.log(`📥 LINK: discordId=${discordId}, uuid=${uuid}, username=${username}`);
@@ -927,11 +927,14 @@ app.get('/api/user/link', async (req, res) => {
 
         // 3. Всё чисто — обновляем или вставляем
         await pool.query(
-            'INSERT INTO users (discord_id, username, minecraft_uuid) VALUES ($1, $2, $3) ON CONFLICT (discord_id) DO UPDATE SET username = $2, minecraft_uuid = $3',
-            [discordId, username, uuid]
+            `INSERT INTO users (discord_id, username, avatar, minecraft_uuid, minecraft_username) 
+             VALUES ($1, $2, NULL, $3, $4) 
+             ON CONFLICT (discord_id) 
+             DO UPDATE SET username = $2, minecraft_uuid = $3, minecraft_username = $4`,
+            [discordId, null, uuid, username]
         );
 
-        console.log(`✅ Аккаунт привязан: ${uuid} -> ${discordId}`);
+        console.log(`✅ Аккаунт привязан: ${uuid} -> ${discordId} (Minecraft ник: ${username})`);
         res.json({ success: true });
     } catch (err) {
         console.error('❌ Ошибка привязки:', err);

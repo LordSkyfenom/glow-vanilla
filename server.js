@@ -104,7 +104,6 @@ app.get('/auth/discord/callback', async (req, res) => {
             isAdmin: isAdmin
         };
 
-        // Сохраняем Discord ник в username
         await pool.query(
             'INSERT INTO users (discord_id, username, avatar) VALUES ($1, $2, $3) ON CONFLICT (discord_id) DO UPDATE SET username = $2, avatar = $3',
             [userData.id, userData.username, userData.avatar]
@@ -613,11 +612,19 @@ app.get('/api/online/update', async (req, res) => {
 });
 
 // ============================================================
-// ПОИСК ПОЛЬЗОВАТЕЛЕЙ ПО MINECRAFT НИКУ
+// ПОИСК ПОЛЬЗОВАТЕЛЕЙ ПО MINECRAFT НИКУ (С ПРОВЕРКОЙ ПО СЕКРЕТУ)
 // ============================================================
 
-app.get('/api/users/search', isAuth, async (req, res) => {
+app.get('/api/users/search', async (req, res) => {
     const query = req.query.q;
+    const secret = req.query.secret;
+
+    // Проверяем секретный ключ
+    if (secret !== SECRET_KEY) {
+        console.log(`❌ Неверный секрет: ${secret}`);
+        return res.status(403).json({ error: 'Неверный ключ' });
+    }
+
     if (!query || query.length < 2) {
         return res.json([]);
     }

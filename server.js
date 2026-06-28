@@ -789,6 +789,9 @@ app.get('/api/bank/withdraw', async (req, res) => {
     }
 });
 
+// ============================================================
+// ПЕРЕВОД (ИСПРАВЛЕННЫЙ)
+// ============================================================
 app.get('/api/bank/transfer', async (req, res) => {
     const fromId = req.query.fromId;
     const toId = req.query.toId;
@@ -798,6 +801,7 @@ app.get('/api/bank/transfer', async (req, res) => {
     console.log(`📥 GET transfer: from=${fromId}, to=${toId}, amount=${amount}`);
 
     if (secret !== SECRET_KEY) {
+        console.log(`❌ Неверный секрет: ${secret}`);
         return res.status(403).send('Неверный ключ');
     }
 
@@ -810,6 +814,7 @@ app.get('/api/bank/transfer', async (req, res) => {
     }
 
     try {
+        // 1. Проверяем баланс отправителя
         const fromResult = await pool.query('SELECT balance FROM bank_accounts WHERE discord_id = $1', [fromId]);
         const fromBalance = fromResult.rows[0]?.balance || 0;
 
@@ -817,16 +822,29 @@ app.get('/api/bank/transfer', async (req, res) => {
             return res.status(400).send('Недостаточно средств');
         }
 
+        // 2. Получаем username получателя из таблицы users
+        const toUserResult = await pool.query('SELECT username FROM users WHERE discord_id = $1', [toId]);
+        const toUsername = toUserResult.rows[0]?.username || 'Unknown';
+        console.log(`🔍 Username получателя: ${toUsername}`);
+
+        // 3. Снимаем с отправителя
         await pool.query('UPDATE bank_accounts SET balance = balance - $1 WHERE discord_id = $2', [amount, fromId]);
 
-        await pool.query(
-            `INSERT INTO bank_accounts (discord_id, username, balance) 
-             VALUES ($1, (SELECT username FROM users WHERE discord_id = $1), $2)
-             ON CONFLICT (discord_id) 
-             DO UPDATE SET balance = bank_accounts.balance + $2`,
-            [toId, amount]
-        );
+        // 4. Проверяем, есть ли получатель в bank_accounts
+        const toResult = await pool.query('SELECT balance FROM bank_accounts WHERE discord_id = $1', [toId]);
 
+        if (toResult.rows.length === 0) {
+            console.log(`🔍 Создаём запись для получателя: ${toUsername}`);
+            await pool.query(
+                'INSERT INTO bank_accounts (discord_id, username, balance) VALUES ($1, $2, 0)',
+                [toId, toUsername]
+            );
+        }
+
+        // 5. Добавляем получателю
+        await pool.query('UPDATE bank_accounts SET balance = balance + $1 WHERE discord_id = $2', [amount, toId]);
+
+        // 6. Записываем транзакции
         await pool.query(
             'INSERT INTO bank_transactions (player_id, type, amount, target) VALUES ($1, $2, $3, $4)',
             [fromId, 'transfer', -amount, toId]
@@ -840,7 +858,7 @@ app.get('/api/bank/transfer', async (req, res) => {
         res.send('OK');
     } catch (err) {
         console.error('❌ Ошибка перевода:', err);
-        res.status(500).send('Ошибка БД');
+        res.status(500).send('Ошибка БД: ' + err.message);
     }
 });
 
@@ -889,7 +907,7 @@ app.get('/api/bank/top', async (req, res) => {
 app.get('/api/user/link', async (req, res) => {
     const discordId = req.query.discordId;
     const uuid = req.query.uuid;
-    const minecraftUsername = req.query.username; // Minecraft ник
+    const minecraftUsername = req.query.username;
     const secret = req.query.secret;
 
     console.log(`📥 LINK: discordId=${discordId}, uuid=${uuid}, minecraftUsername=${minecraftUsername}`);
@@ -904,35 +922,30 @@ app.get('/api/user/link', async (req, res) => {
     }
 
     try {
-        // 1. Проверяем, не привязан ли уже этот UUID к другому Discord ID
         const existingLink = await pool.query(
             'SELECT discord_id FROM users WHERE minecraft_uuid = $1 AND discord_id != $2',
             [uuid, discordId]
         );
 
         if (existingLink.rows.length > 0) {
-            console.log(`❌ UUID ${uuid} уже привязан к другому Discord ID: ${existingLink.rows[0].discord_id}`);
             return res.status(400).json({ 
                 error: 'Этот Minecraft аккаунт уже привязан к другому Discord ID!',
                 code: 'UUID_ALREADY_LINKED'
             });
         }
 
-        // 2. Проверяем, не привязан ли уже этот Discord ID к другому UUID
         const existingDiscord = await pool.query(
             'SELECT minecraft_uuid FROM users WHERE discord_id = $1 AND minecraft_uuid != $2 AND minecraft_uuid IS NOT NULL',
             [discordId, uuid]
         );
 
         if (existingDiscord.rows.length > 0) {
-            console.log(`❌ Discord ID ${discordId} уже привязан к другому UUID: ${existingDiscord.rows[0].minecraft_uuid}`);
             return res.status(400).json({ 
                 error: 'Этот Discord ID уже привязан к другому Minecraft аккаунту!',
                 code: 'DISCORD_ALREADY_LINKED'
             });
         }
 
-        // 3. Всё чисто — обновляем minecraft_uuid и minecraft_username (username НЕ ТРОГАЕМ!)
         await pool.query(
             `UPDATE users 
              SET minecraft_uuid = $1, minecraft_username = $2 

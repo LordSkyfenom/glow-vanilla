@@ -240,6 +240,11 @@
 
     <script>
         // ============================================================
+        // СЕКРЕТ (должен совпадать с SECRET_KEY на сервере)
+        // ============================================================
+        const SECRET_KEY = 'JEBWG6627JekwkavJwkq';
+
+        // ============================================================
         // ЗАГРУЗКА ПРОФИЛЯ
         // ============================================================
         async function loadProfile() {
@@ -269,7 +274,7 @@
                 // 3. Получаем РЕАЛЬНЫЙ БАЛАНС из банковской системы
                 let balance = 0;
                 try {
-                    const bankRes = await fetch(`/api/bank/balance/${user.id}?secret=Fjjx37GJSZ`);
+                    const bankRes = await fetch(`/api/bank/balance/${user.id}?secret=${SECRET_KEY}`);
                     if (bankRes.ok) {
                         const bankData = await bankRes.json();
                         balance = bankData.balance || 0;
@@ -321,7 +326,7 @@
                             <div class="bank-card__number">•••• •••• •••• ${user.id.slice(-4)}</div>
                             <div class="bank-card__bottom">
                                 <span class="bank-card__name">${user.username}</span>
-                                <span class="bank-card__balance" id="bankBalance">${balance} АР</span>
+                                <span class="bank-card__balance">${balance} АР</span>
                             </div>
                         </div>
 

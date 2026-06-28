@@ -104,6 +104,7 @@ app.get('/auth/discord/callback', async (req, res) => {
             isAdmin: isAdmin
         };
 
+        // Сохраняем Discord ник в username
         await pool.query(
             'INSERT INTO users (discord_id, username, avatar) VALUES ($1, $2, $3) ON CONFLICT (discord_id) DO UPDATE SET username = $2, avatar = $3',
             [userData.id, userData.username, userData.avatar]
@@ -612,7 +613,7 @@ app.get('/api/online/update', async (req, res) => {
 });
 
 // ============================================================
-// ПОИСК ПОЛЬЗОВАТЕЛЕЙ (по Minecraft нику и Discord нику)
+// ПОИСК ПОЛЬЗОВАТЕЛЕЙ ПО MINECRAFT НИКУ
 // ============================================================
 
 app.get('/api/users/search', isAuth, async (req, res) => {
@@ -625,7 +626,7 @@ app.get('/api/users/search', isAuth, async (req, res) => {
         const result = await pool.query(
             `SELECT discord_id, username, avatar, minecraft_username 
              FROM users 
-             WHERE minecraft_username ILIKE $1 OR username ILIKE $1
+             WHERE minecraft_username ILIKE $1 
              LIMIT 10`,
             [`%${query}%`]
         );
@@ -877,15 +878,15 @@ app.get('/api/bank/top', async (req, res) => {
 });
 
 // ============================================================
-// ПРИВЯЗКА МАЙНКРАФТ UUID К DISCORD ID (с сохранением Minecraft ника)
+// ПРИВЯЗКА МАЙНКРАФТ UUID К DISCORD ID
 // ============================================================
 app.get('/api/user/link', async (req, res) => {
     const discordId = req.query.discordId;
     const uuid = req.query.uuid;
-    const username = req.query.username; // Minecraft ник
+    const minecraftUsername = req.query.username; // Minecraft ник
     const secret = req.query.secret;
 
-    console.log(`📥 LINK: discordId=${discordId}, uuid=${uuid}, username=${username}`);
+    console.log(`📥 LINK: discordId=${discordId}, uuid=${uuid}, minecraftUsername=${minecraftUsername}`);
 
     if (secret !== SECRET_KEY) {
         console.log(`❌ Неверный секрет: ${secret}`);
@@ -925,16 +926,15 @@ app.get('/api/user/link', async (req, res) => {
             });
         }
 
-        // 3. Всё чисто — обновляем или вставляем
+        // 3. Всё чисто — обновляем minecraft_uuid и minecraft_username (username НЕ ТРОГАЕМ!)
         await pool.query(
-            `INSERT INTO users (discord_id, username, avatar, minecraft_uuid, minecraft_username) 
-             VALUES ($1, $2, NULL, $3, $4) 
-             ON CONFLICT (discord_id) 
-             DO UPDATE SET username = $2, minecraft_uuid = $3, minecraft_username = $4`,
-            [discordId, null, uuid, username]
+            `UPDATE users 
+             SET minecraft_uuid = $1, minecraft_username = $2 
+             WHERE discord_id = $3`,
+            [uuid, minecraftUsername, discordId]
         );
 
-        console.log(`✅ Аккаунт привязан: ${uuid} -> ${discordId} (Minecraft ник: ${username})`);
+        console.log(`✅ Аккаунт привязан: ${uuid} -> ${discordId} (Minecraft ник: ${minecraftUsername})`);
         res.json({ success: true });
     } catch (err) {
         console.error('❌ Ошибка привязки:', err);

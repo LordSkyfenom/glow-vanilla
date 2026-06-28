@@ -612,14 +612,13 @@ app.get('/api/online/update', async (req, res) => {
 });
 
 // ============================================================
-// ПОИСК ПОЛЬЗОВАТЕЛЕЙ ПО MINECRAFT НИКУ (С ПРОВЕРКОЙ ПО СЕКРЕТУ)
+// ПОИСК ПОЛЬЗОВАТЕЛЕЙ ПО MINECRAFT НИКУ (ВОЗВРАЩАЕТ minecraft_uuid)
 // ============================================================
 
 app.get('/api/users/search', async (req, res) => {
     const query = req.query.q;
     const secret = req.query.secret;
 
-    // Проверяем секретный ключ
     if (secret !== SECRET_KEY) {
         console.log(`❌ Неверный секрет: ${secret}`);
         return res.status(403).json({ error: 'Неверный ключ' });
@@ -631,7 +630,7 @@ app.get('/api/users/search', async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT discord_id, username, avatar, minecraft_username 
+            `SELECT discord_id, username, avatar, minecraft_username, minecraft_uuid 
              FROM users 
              WHERE minecraft_username ILIKE $1 
              LIMIT 10`,

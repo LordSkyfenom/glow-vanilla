@@ -109,10 +109,6 @@
             font-weight: 700;
             color: var(--gold);
         }
-        .bank-card__balance.loading {
-            color: var(--gray);
-            font-weight: 400;
-        }
         .profile-actions {
             display: flex;
             gap: 12px;
@@ -271,35 +267,29 @@
                 const statsRes = await fetch(`/api/user/stats/${user.id}`);
                 const stats = statsRes.ok ? await statsRes.json() : { posts: 0, cities: 0, friends: 0 };
 
-                // 3. Получаем РЕАЛЬНЫЙ БАЛАНС из банковской системы (по UUID)
+                // ============================================================
+                // 3. ПОЛУЧАЕМ РЕАЛЬНЫЙ БАЛАНС — ПРЯМО ПО DISCORD ID
+                // ============================================================
                 let balance = 0;
                 try {
-                    // Получаем UUID пользователя из таблицы users
-                    const userRes = await fetch(`/api/users/${user.id}`);
-                    let uuid = null;
-                    if (userRes.ok) {
-                        const userData = await userRes.json();
-                        uuid = userData.minecraft_uuid;
-                    }
+                    const url = `/api/bank/balance/${user.id}?secret=${SECRET_KEY}`;
+                    console.log('📤 Запрос баланса:', url);
                     
-                    // Если UUID есть — ищем баланс по нему
-                    if (uuid) {
-                        const bankRes = await fetch(`/api/bank/balance/${uuid}?secret=${SECRET_KEY}`);
-                        if (bankRes.ok) {
-                            const bankData = await bankRes.json();
-                            balance = bankData.balance || 0;
-                        }
+                    const bankRes = await fetch(url);
+                    console.log('📥 Статус ответа:', bankRes.status);
+                    
+                    if (bankRes.ok) {
+                        const bankData = await bankRes.json();
+                        console.log('📥 Данные баланса:', bankData);
+                        balance = bankData.balance || 0;
                     } else {
-                        // Если UUID нет — пробуем по Discord ID (как запасной вариант)
-                        const bankRes = await fetch(`/api/bank/balance/${user.id}?secret=${SECRET_KEY}`);
-                        if (bankRes.ok) {
-                            const bankData = await bankRes.json();
-                            balance = bankData.balance || 0;
-                        }
+                        const errorText = await bankRes.text();
+                        console.error('❌ Ошибка API:', bankRes.status, errorText);
                     }
                 } catch (e) {
-                    console.warn('Не удалось загрузить баланс:', e);
+                    console.error('❌ Ошибка запроса баланса:', e);
                 }
+                // ============================================================
 
                 // 4. Обновляем аватар в хедере
                 const avatarUrl = user.avatar
@@ -344,7 +334,7 @@
                             <div class="bank-card__number">•••• •••• •••• ${user.id.slice(-4)}</div>
                             <div class="bank-card__bottom">
                                 <span class="bank-card__name">${user.username}</span>
-                                <span class="bank-card__balance">${balance} АР</span>
+                                <span class="bank-card__balance" id="balanceDisplay">${balance} АР</span>
                             </div>
                         </div>
 

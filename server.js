@@ -36,6 +36,9 @@ app.use(session({
     cookie: { secure: false }
 }));
 
+// ============================================================
+// МИДЛВЭРЫ
+// ============================================================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('.'));
@@ -677,7 +680,7 @@ app.get('/api/users/:discordId', async (req, res) => {
 // 12. API — БАНКОВСКАЯ СИСТЕМА
 // ============================================================
 
-// 12.1 Получить баланс (с поддержкой UUID)
+// 12.1 Получить баланс (с поддержкой UUID и Discord ID)
 app.get('/api/bank/balance/:discordId', async (req, res) => {
     const { discordId } = req.params;
     const { secret } = req.query;
@@ -689,14 +692,29 @@ app.get('/api/bank/balance/:discordId', async (req, res) => {
     }
 
     try {
-        // Ищем баланс по discord_id ИЛИ по minecraft_uuid
-        const result = await pool.query(
-            `SELECT balance FROM bank_accounts 
-             WHERE discord_id = $1 
-             OR discord_id IN (SELECT discord_id FROM users WHERE minecraft_uuid = $1)`,
+        // 1. Сначала ищем по discord_id
+        let result = await pool.query(
+            'SELECT balance FROM bank_accounts WHERE discord_id = $1',
             [discordId]
         );
-        const balance = result.rows[0]?.balance || 0;
+        let balance = result.rows[0]?.balance || 0;
+
+        // 2. Если не нашли — ищем по minecraft_uuid
+        if (balance === 0) {
+            const uuidResult = await pool.query(
+                'SELECT minecraft_uuid FROM users WHERE discord_id = $1',
+                [discordId]
+            );
+            const uuid = uuidResult.rows[0]?.minecraft_uuid;
+            if (uuid) {
+                result = await pool.query(
+                    'SELECT balance FROM bank_accounts WHERE discord_id = $1',
+                    [uuid]
+                );
+                balance = result.rows[0]?.balance || 0;
+            }
+        }
+
         console.log(`✅ Баланс для ${discordId}: ${balance}`);
         res.json({ discordId, balance });
     } catch (err) {

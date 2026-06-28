@@ -274,9 +274,25 @@
                 // 3. Получаем РЕАЛЬНЫЙ БАЛАНС из банковской системы
                 let balance = 0;
                 try {
-                    const bankRes = await fetch(`/api/bank/balance/${user.id}?secret=${SECRET_KEY}`);
-                    if (bankRes.ok) {
-                        const bankData = await bankRes.json();
+                    // Сначала пробуем по Discord ID
+                    let bankRes = await fetch(`/api/bank/balance/${user.id}?secret=${SECRET_KEY}`);
+                    let bankData = bankRes.ok ? await bankRes.json() : null;
+                    
+                    // Если не нашлось — пробуем по UUID (если он есть в таблице users)
+                    if (!bankData || bankData.balance === undefined) {
+                        const userRes = await fetch(`/api/users/${user.id}`);
+                        if (userRes.ok) {
+                            const userData = await userRes.json();
+                            if (userData.minecraft_uuid) {
+                                bankRes = await fetch(`/api/bank/balance/${userData.minecraft_uuid}?secret=${SECRET_KEY}`);
+                                if (bankRes.ok) {
+                                    bankData = await bankRes.json();
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (bankData && bankData.balance !== undefined) {
                         balance = bankData.balance || 0;
                     }
                 } catch (e) {
